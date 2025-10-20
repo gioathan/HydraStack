@@ -1,0 +1,50 @@
+# --- .NET build outputs ---
+**/bin/
+**/obj/
+**/TestResults/
+*.trx
+*.coverage
+*.coveragexml
+.coverage/
+coverage/
+
+# --- VS / Rider / VSCode ---
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+*.csproj.user
+
+# --- NuGet & packages ---
+*.nupkg
+packages/
+.nuget/
+
+# --- OS cruft ---
+.DS_Store
+Thumbs.db
+
+# --- Docker / Compose (local-only files) ---
+.env
+docker-compose.override.yml
+docker-compose.override.*.yml
+*.local.yml
+
+# --- Secrets (never commit real secrets) ---
+secrets.json
+*.secret.json
+
+# --- Logs/temp ---
+logs/
+*.log
+tmp/
+temp/
+
+# --- Node (future RN/web frontend) ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml

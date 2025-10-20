@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  hydra.api:
+    image: hydra-booking-api
+    build:
+      context: .
+      dockerfile: Hydra.Api/Dockerfile
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: hydra
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    command: ["redis-server","--appendonly","yes"]
+
+volumes:
+  pgdata:
