@@ -1,7 +1,7 @@
 ﻿using Hydra.Api.Caching;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Data;
-using Hydra.Api.Models;
+using Hydra.Api.Mapping;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,95 +19,145 @@ public class VenuesController : ControllerBase
 
     public VenuesController(AppDbContext db, ICache cache)
     {
-        _db = db; _cache = cache;
+        _db = db;
+        _cache = cache;
     }
 
-    // POST /api/venues
+    /// <summary>
+    /// Create a new venue
+    /// POST /api/venues
+    /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateVenueRequest req, CancellationToken ct)
+    public async Task<IActionResult> Create(
+        [FromBody] CreateVenueRequest request,
+        CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Name is required.");
+        // Validation
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { error = "Name is required." });
+        }
 
-        var v = new Venue { Name = req.Name, Address = req.Address, Capacity = req.Capacity };
-        _db.Venues.Add(v);
+        // DTO → Model using mapping extension
+        var venue = request.ToModel();
+
+        _db.Venues.Add(venue);
         await _db.SaveChangesAsync(ct);
 
-        // Invalidate venues caches
+        // Invalidate venue caches
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken);
 
-        return CreatedAtAction(nameof(Get), new { id = v.Id }, ToDto(v));
+        // Model → DTO using mapping extension
+        return CreatedAtAction(
+            nameof(Get),
+            new { id = venue.Id },
+            venue.ToDto());
     }
 
-    // GET /api/venues/{id}
+    /// <summary>
+    /// Get a venue by ID (cached)
+    /// GET /api/venues/{id}
+    /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<VenueDto>> Get(Guid id, CancellationToken ct)
     {
-        var ver = await _cache.GetTokenAsync(CacheKeys.VenuesToken);
-        var key = CacheKeys.VenueDetail(id, ver);
+        var version = await _cache.GetTokenAsync(CacheKeys.VenuesToken);
+        var cacheKey = CacheKeys.VenueDetail(id, version);
 
         var dto = await _cache.GetOrSetAsync(
-            key,
+            cacheKey,
             ttl: DetailTtl,
-            factory: async _ => await _db.Venues.AsNoTracking()
-                                                .Where(x => x.Id == id)
-                                                .Select(x => ToDto(x))
-                                                .FirstOrDefaultAsync(ct),
+            factory: async _ =>
+            {
+                var venue = await _db.Venues
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+                // Model → DTO using mapping extension
+                return venue?.ToDto();
+            },
             jitter: TimeSpan.FromSeconds(20),
             ct: ct);
 
         return dto is null ? NotFound() : Ok(dto);
     }
 
-    // GET /api/venues
-    // Simple MVP: return all, cached. (Add paging/search later.)
+    /// <summary>
+    /// List all venues (cached)
+    /// GET /api/venues
+    /// </summary>
+    /// <remarks>
+    /// Simple MVP: returns all venues, cached. Add paging/search later.
+    /// </remarks>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<VenueDto>>> List(CancellationToken ct)
     {
-        var ver = await _cache.GetTokenAsync(CacheKeys.VenuesToken);
-        var key = CacheKeys.VenuesList(ver);
+        var version = await _cache.GetTokenAsync(CacheKeys.VenuesToken);
+        var cacheKey = CacheKeys.VenuesList(version);
 
         var list = await _cache.GetOrSetAsync(
-            key,
+            cacheKey,
             ttl: ListTtl,
-            factory: async _ => await _db.Venues.AsNoTracking()
-                                                .OrderBy(v => v.Name)
-                                                .Select(v => ToDto(v))
-                                                .ToListAsync(ct),
+            factory: async _ =>
+            {
+                var venues = await _db.Venues
+                    .AsNoTracking()
+                    .OrderBy(v => v.Name)
+                    .ToListAsync(ct);
+
+                // Model → DTO using mapping extension
+                return venues.Select(v => v.ToDto()).ToList();
+            },
             jitter: TimeSpan.FromSeconds(30),
             ct: ct);
 
         return Ok(list);
     }
 
-    // PUT /api/venues/{id}
+    /// <summary>
+    /// Update an existing venue
+    /// PUT /api/venues/{id}
+    /// </summary>
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVenueRequest req, CancellationToken ct)
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] UpdateVenueRequest request,
+        CancellationToken ct)
     {
-        var v = await _db.Venues.FindAsync([id], ct);
-        if (v is null) return NotFound();
+        var venue = await _db.Venues.FindAsync([id], ct);
 
-        v.Name = req.Name;
-        v.Address = req.Address;
-        v.Capacity = req.Capacity;
+        if (venue is null)
+            return NotFound();
+
+        // DTO → Model update using mapping extension
+        venue.UpdateFrom(request);
+
         await _db.SaveChangesAsync(ct);
 
+        // Invalidate venue caches
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken);
+
         return NoContent();
     }
 
-    // DELETE /api/venues/{id}
+    /// <summary>
+    /// Delete a venue
+    /// DELETE /api/venues/{id}
+    /// </summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var v = await _db.Venues.FindAsync([id], ct);
-        if (v is null) return NotFound();
+        var venue = await _db.Venues.FindAsync([id], ct);
 
-        _db.Venues.Remove(v);
+        if (venue is null)
+            return NotFound();
+
+        _db.Venues.Remove(venue);
         await _db.SaveChangesAsync(ct);
 
+        // Invalidate venue caches
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken);
+
         return NoContent();
     }
-
-    private static VenueDto ToDto(Venue v) => new(v.Id, v.Name, v.Address, v.Capacity);
 }

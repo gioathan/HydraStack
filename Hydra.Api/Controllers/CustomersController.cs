@@ -1,6 +1,6 @@
 ﻿using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Data;
-using Hydra.Api.Models;
+using Hydra.Api.Mapping;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,58 +11,89 @@ namespace Hydra.Api.Controllers;
 public class CustomersController : ControllerBase
 {
     private readonly AppDbContext _db;
+
     public CustomersController(AppDbContext db) => _db = db;
 
-    // POST /api/customers
+    /// <summary>
+    /// Create a new customer
+    /// POST /api/customers
+    /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCustomerRequest req, CancellationToken ct)
+    public async Task<IActionResult> Create(
+        [FromBody] CreateCustomerRequest request,
+        CancellationToken ct)
     {
-        // MVP: allow null email/phone, but at least one would be nice
-        if (string.IsNullOrWhiteSpace(req.Email) && string.IsNullOrWhiteSpace(req.Phone))
-            return BadRequest("Provide at least email or phone.");
-
-        var c = new Customer
+        // Validation: At least one contact method required
+        if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
         {
-            Email = req.Email?.Trim(),
-            Phone = req.Phone?.Trim(),
-            Locale = string.IsNullOrWhiteSpace(req.Locale) ? "en" : req.Locale,
-            MarketingOptIn = req.MarketingOptIn
-        };
-        _db.Customers.Add(c);
+            return BadRequest(new { error = "Provide at least email or phone." });
+        }
+
+        // DTO → Model using mapping extension
+        var customer = request.ToModel();
+
+        _db.Customers.Add(customer);
         await _db.SaveChangesAsync(ct);
 
-        return CreatedAtAction(nameof(Get), new { id = c.Id }, ToDto(c));
+        // Model → DTO using mapping extension
+        return CreatedAtAction(
+            nameof(Get),
+            new { id = customer.Id },
+            customer.ToDto());
     }
 
-    // GET /api/customers/{id}
+    /// <summary>
+    /// Get a customer by ID
+    /// GET /api/customers/{id}
+    /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CustomerDto>> Get(Guid id, CancellationToken ct)
     {
-        var dto = await _db.Customers.AsNoTracking()
-                                     .Where(x => x.Id == id)
-                                     .Select(x => ToDto(x))
-                                     .FirstOrDefaultAsync(ct);
-        return dto is null ? NotFound() : Ok(dto);
+        var customer = await _db.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (customer is null)
+            return NotFound();
+
+        // Model → DTO using mapping extension
+        return Ok(customer.ToDto());
     }
 
-    // GET /api/customers?email=&phone=
+    /// <summary>
+    /// Search customers by email or phone
+    /// GET /api/customers?email=test@example.com&phone=555-1234
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CustomerDto>>> List(string? email, string? phone, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<CustomerDto>>> List(
+        [FromQuery] string? email,
+        [FromQuery] string? phone,
+        CancellationToken ct)
     {
-        var q = _db.Customers.AsNoTracking();
+        var query = _db.Customers.AsNoTracking();
 
+        // Apply filters
         if (!string.IsNullOrWhiteSpace(email))
-            q = q.Where(c => c.Email != null && c.Email.ToLower() == email.ToLower());
+        {
+            var emailLower = email.ToLower().Trim();
+            query = query.Where(c => c.Email != null && c.Email.ToLower() == emailLower);
+        }
+
         if (!string.IsNullOrWhiteSpace(phone))
-            q = q.Where(c => c.Phone != null && c.Phone == phone);
+        {
+            var phoneTrimmed = phone.Trim();
+            query = query.Where(c => c.Phone != null && c.Phone == phoneTrimmed);
+        }
 
-        var list = await q.OrderByDescending(c => c.CreatedAtUtc)
-                          .Take(100)
-                          .Select(c => ToDto(c))
-                          .ToListAsync(ct);
-        return Ok(list);
+        // Execute query with mapping
+        var customers = await query
+            .OrderByDescending(c => c.CreatedAtUtc)
+            .Take(100)
+            .ToListAsync(ct);
+
+        // Model → DTO using mapping extension
+        var dtos = customers.Select(c => c.ToDto()).ToList();
+
+        return Ok(dtos);
     }
-
-    private static CustomerDto ToDto(Customer c) =>
-        new(c.Id, c.Email, c.Phone, c.Locale, c.MarketingOptIn, c.CreatedAtUtc, null);
 }

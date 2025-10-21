@@ -24,3 +24,5 @@ public record BookingDto(
     DateTime? DecidedAtUtc,
     string? CustomerNote,
     string? AdminNote);
+
+public record CancelBookingRequest(string? Reason);
