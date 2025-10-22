@@ -14,9 +14,6 @@ public class VenuesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ICache _cache;
 
-    private static readonly TimeSpan ListTtl = TimeSpan.FromMinutes(10);
-    private static readonly TimeSpan DetailTtl = TimeSpan.FromMinutes(20);
-
     public VenuesController(AppDbContext db, ICache cache)
     {
         _db = db;
@@ -66,17 +63,16 @@ public class VenuesController : ControllerBase
 
         var dto = await _cache.GetOrSetAsync(
             cacheKey,
-            ttl: DetailTtl,
+            ttl: CacheKeys.Ttl.VenueDetail,           // ✅ Using centralized TTL
             factory: async _ =>
             {
                 var venue = await _db.Venues
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == id, ct);
 
-                // Model → DTO using mapping extension
                 return venue?.ToDto();
             },
-            jitter: TimeSpan.FromSeconds(20),
+            jitter: CacheKeys.Jitter.Venues,          // ✅ Using centralized jitter
             ct: ct);
 
         return dto is null ? NotFound() : Ok(dto);
@@ -97,7 +93,7 @@ public class VenuesController : ControllerBase
 
         var list = await _cache.GetOrSetAsync(
             cacheKey,
-            ttl: ListTtl,
+            ttl: CacheKeys.Ttl.VenuesList,            // ✅ Using centralized TTL
             factory: async _ =>
             {
                 var venues = await _db.Venues
@@ -105,10 +101,9 @@ public class VenuesController : ControllerBase
                     .OrderBy(v => v.Name)
                     .ToListAsync(ct);
 
-                // Model → DTO using mapping extension
                 return venues.Select(v => v.ToDto()).ToList();
             },
-            jitter: TimeSpan.FromSeconds(30),
+            jitter: CacheKeys.Jitter.Venues,          // ✅ Using centralized jitter
             ct: ct);
 
         return Ok(list);
