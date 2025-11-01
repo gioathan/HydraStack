@@ -5,12 +5,7 @@ public record CreateBookingRequest(
     Guid CustomerId,
     DateTime StartUtc,
     DateTime EndUtc,
-    int PartySize,
-    string? CustomerNote);
-
-public record BookingDecisionRequest(
-    string? Admin,   
-    string? Note); 
+    int PartySize);
 
 public record BookingDto(
     Guid Id,
@@ -20,9 +15,15 @@ public record BookingDto(
     DateTime EndUtc,
     int PartySize,
     string Status,
-    DateTime RequestedAtUtc,
-    DateTime? DecidedAtUtc,
-    string? CustomerNote,
-    string? AdminNote);
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);
 
-public record CancelBookingRequest(string? Reason);
+public record BookingDecisionRequest(
+    string Admin,      // who decided (identifier/email)
+    string? Note = null);
+
+public record CancelBookingRequest(
+    string? CancelledBy = null,
+    string? Reason = null
+);
+

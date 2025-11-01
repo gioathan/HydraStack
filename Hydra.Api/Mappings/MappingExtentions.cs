@@ -2,6 +2,7 @@
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Contracts.Bookings;
+using Hydra.Api.Contracts.Users;
 
 namespace Hydra.Api.Mapping;
 
@@ -12,7 +13,7 @@ public static class MappingExtensions
     // ==========================================
 
     /// <summary>
-    /// Convert Venue model to DTO (Model → DTO)
+    /// Model → DTO
     /// </summary>
     public static VenueDto ToDto(this Venue venue) =>
         new(
@@ -23,19 +24,19 @@ public static class MappingExtensions
         );
 
     /// <summary>
-    /// Convert CreateVenueRequest to Venue model (DTO → Model)
+    /// DTO → Model (Create)
     /// </summary>
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
         {
             Name = request.Name,
             Address = request.Address,
-            Capacity = request.Capacity,
-            CreatedAtUtc = DateTime.UtcNow
+            Capacity = request.Capacity
+            // NOTE: Venue model does not have CreatedAtUtc in your code
         };
 
     /// <summary>
-    /// Update existing Venue from UpdateVenueRequest (DTO → Model update)
+    /// DTO → Model (Update)
     /// </summary>
     public static void UpdateFrom(this Venue venue, UpdateVenueRequest request)
     {
@@ -49,7 +50,7 @@ public static class MappingExtensions
     // ==========================================
 
     /// <summary>
-    /// Convert Customer model to DTO (Model → DTO)
+    /// Model → DTO
     /// </summary>
     public static CustomerDto ToDto(this Customer customer) =>
         new(
@@ -59,11 +60,11 @@ public static class MappingExtensions
             customer.Locale,
             customer.MarketingOptIn,
             customer.CreatedAtUtc,
-            Name: null  // Name field in DTO but not in model - keeping for future use
+            customer.Name // your model DOES have Name
         );
 
     /// <summary>
-    /// Convert CreateCustomerRequest to Customer model (DTO → Model)
+    /// DTO → Model (Create)
     /// </summary>
     public static Customer ToModel(this CreateCustomerRequest request) =>
         new()
@@ -72,8 +73,8 @@ public static class MappingExtensions
             Phone = request.Phone,
             Locale = request.Locale,
             MarketingOptIn = request.MarketingOptIn,
-            CreatedAtUtc = DateTime.UtcNow
-            // Note: Name in request is ignored as Customer model doesn't have a Name property yet
+            CreatedAtUtc = DateTime.UtcNow,
+            Name = request.Name
         };
 
     // ==========================================
@@ -81,7 +82,7 @@ public static class MappingExtensions
     // ==========================================
 
     /// <summary>
-    /// Convert Booking model to DTO (Model → DTO)
+    /// Model → DTO
     /// </summary>
     public static BookingDto ToDto(this Booking booking) =>
         new(
@@ -91,15 +92,13 @@ public static class MappingExtensions
             booking.StartUtc,
             booking.EndUtc,
             booking.PartySize,
-            booking.Status.ToString(),  // Convert enum to string for API response
-            booking.RequestedAtUtc,
-            booking.DecidedAtUtc,
-            booking.CustomerNote,
-            booking.AdminNote
+            booking.Status.ToString(),
+            booking.CreatedAtUtc,
+            booking.UpdatedAtUtc
         );
 
     /// <summary>
-    /// Convert CreateBookingRequest to Booking model (DTO → Model)
+    /// DTO → Model (Create)
     /// </summary>
     public static Booking ToModel(this CreateBookingRequest request) =>
         new()
@@ -109,120 +108,56 @@ public static class MappingExtensions
             StartUtc = request.StartUtc,
             EndUtc = request.EndUtc,
             PartySize = request.PartySize,
-            CustomerNote = request.CustomerNote,
-            // Server-controlled fields:
             Status = BookingStatus.Pending,
-            RequestedAtUtc = DateTime.UtcNow,
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow
         };
 
-    /// <summary>
-    /// Apply a booking decision (confirm/decline) to an existing Booking
-    /// </summary>
-    public static void ApplyDecision(
-        this Booking booking,
-        BookingDecisionRequest decision,
-        bool isConfirmed)
+    // ==========================================
+    // BOOKING STATE HELPERS (fit current model)
+    // ==========================================
+
+    public static void Confirm(this Booking booking)
     {
         if (booking.Status != BookingStatus.Pending)
-        {
-            throw new InvalidOperationException(
-                $"Cannot apply decision to booking in {booking.Status} status. Only Pending bookings can be decided.");
-        }
-
-        booking.Status = isConfirmed ? BookingStatus.Confirmed : BookingStatus.Declined;
-        booking.DecidedAtUtc = DateTime.UtcNow;
-        booking.DecidedBy = decision.Admin;
-        booking.AdminNote = decision.Note;
-        booking.UpdatedAtUtc = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// Confirm a booking
-    /// </summary>
-    public static void Confirm(this Booking booking, string adminIdentifier, string? note = null)
-    {
-        if (booking.Status != BookingStatus.Pending)
-        {
-            throw new InvalidOperationException(
-                $"Cannot confirm booking in {booking.Status} status");
-        }
+            throw new InvalidOperationException($"Cannot confirm booking in {booking.Status} status.");
 
         booking.Status = BookingStatus.Confirmed;
-        booking.DecidedAtUtc = DateTime.UtcNow;
-        booking.DecidedBy = adminIdentifier;
-        booking.AdminNote = note;
         booking.UpdatedAtUtc = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Decline a booking
-    /// </summary>
-    public static void Decline(this Booking booking, string adminIdentifier, string? note = null)
+    public static void Decline(this Booking booking)
     {
         if (booking.Status != BookingStatus.Pending)
-        {
-            throw new InvalidOperationException(
-                $"Cannot decline booking in {booking.Status} status");
-        }
+            throw new InvalidOperationException($"Cannot decline booking in {booking.Status} status.");
 
         booking.Status = BookingStatus.Declined;
-        booking.DecidedAtUtc = DateTime.UtcNow;
-        booking.DecidedBy = adminIdentifier;
-        booking.AdminNote = note;
         booking.UpdatedAtUtc = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Cancel a confirmed booking
-    /// </summary>
-    public static void Cancel(this Booking booking, string? cancelledBy = null)
+    public static void Cancel(this Booking booking)
     {
         if (booking.Status != BookingStatus.Confirmed)
-        {
-            throw new InvalidOperationException(
-                $"Can only cancel confirmed bookings. Current status: {booking.Status}");
-        }
+            throw new InvalidOperationException($"Can only cancel confirmed bookings. Current status: {booking.Status}");
 
         booking.Status = BookingStatus.Cancelled;
         booking.UpdatedAtUtc = DateTime.UtcNow;
-
-        if (!string.IsNullOrEmpty(cancelledBy))
-        {
-            booking.AdminNote = string.IsNullOrEmpty(booking.AdminNote)
-                ? $"Cancelled by: {cancelledBy}"
-                : $"{booking.AdminNote}\nCancelled by: {cancelledBy}";
-        }
     }
 
-    /// <summary>
-    /// Mark a booking as seated (customer arrived)
-    /// </summary>
-    public static void MarkAsSeated(this Booking booking)
-    {
-        if (booking.Status != BookingStatus.Confirmed)
+    /// <summary>Model → DTO</summary>
+    public static UserDto ToDto(this User user) =>
+        new(
+            user.Id,
+            user.Email,
+            user.Role.ToString()
+        );
+
+    /// <summary>DTO → Model (Create)</summary>
+    public static User ToModel(this CreateUserRequest request) =>
+        new()
         {
-            throw new InvalidOperationException(
-                $"Can only seat confirmed bookings. Current status: {booking.Status}");
-        }
-
-        booking.Status = BookingStatus.Seated;
-        booking.UpdatedAtUtc = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// Mark a booking as no-show (customer didn't arrive)
-    /// </summary>
-    public static void MarkAsNoShow(this Booking booking)
-    {
-        if (booking.Status != BookingStatus.Confirmed)
-        {
-            throw new InvalidOperationException(
-                $"Can only mark confirmed bookings as no-show. Current status: {booking.Status}");
-        }
-
-        booking.Status = BookingStatus.NoShow;
-        booking.UpdatedAtUtc = DateTime.UtcNow;
-    }
+            Email = request.Email,
+            PasswordHash = "" ,
+            Role = Enum.Parse<UserRole>(request.Role, ignoreCase: true)
+        };
 }

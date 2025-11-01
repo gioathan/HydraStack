@@ -8,7 +8,5 @@ public class BookingRules
     public Venue Venue { get; set; } = default!;   // 1:1 with Venue
 
     public int SlotMinutes { get; set; } = 90;
-    public int BufferMinutes { get; set; } = 15;
-    public int HoldMinutes { get; set; } = 10;
     public bool AutoConfirm { get; set; } = true;
 }
