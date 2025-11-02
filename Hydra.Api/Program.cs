@@ -7,6 +7,8 @@ using Hydra.Api.Repositories.Venues;
 using Hydra.Api.Services.Venues;
 using Hydra.Api.Repositories.Customers;
 using Hydra.Api.Services.Customers;
+using Hydra.Api.Repositories.Users;
+using Hydra.Api.Services.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +28,8 @@ builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
