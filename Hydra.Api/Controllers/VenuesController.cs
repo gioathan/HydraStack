@@ -1,9 +1,6 @@
-﻿using Hydra.Api.Caching;
-using Hydra.Api.Contracts.Venues;
-using Hydra.Api.Data;
-using Hydra.Api.Mapping;
+﻿using Hydra.Api.Contracts.Venues;
+using Hydra.Api.Services.Venues;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Hydra.Api.Controllers;
 
@@ -11,14 +8,62 @@ namespace Hydra.Api.Controllers;
 [Route("api/[controller]")]
 public class VenuesController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    private readonly ICache _cache;
+    private readonly IVenueService _venueService;
 
-    public VenuesController(AppDbContext db, ICache cache)
+    public VenuesController(IVenueService venueService)
     {
-        _db = db;
-        _cache = cache;
+        _venueService = venueService;
     }
 
-    
+    [HttpGet]
+    public async Task<ActionResult<List<VenueDto>>> GetAllVenues(CancellationToken ct)
+    {
+        var venues = await _venueService.GetAllVenuesAsync(ct);
+        return Ok(venues);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<VenueDto>> GetVenueById(Guid id, CancellationToken ct)
+    {
+        var venue = await _venueService.GetVenueByIdAsync(id, ct);
+
+        if (venue is null)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return Ok(venue);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<VenueDto>> CreateVenue(
+        [FromBody] CreateVenueRequest request,
+        CancellationToken ct)
+    {
+        var venue = await _venueService.CreateVenueAsync(request, ct);
+        return CreatedAtAction(nameof(GetVenueById), new { id = venue.Id }, venue);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<VenueDto>> UpdateVenue(
+        Guid id,
+        [FromBody] UpdateVenueRequest request,
+        CancellationToken ct)
+    {
+        var venue = await _venueService.UpdateVenueAsync(id, request, ct);
+
+        if (venue is null)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return Ok(venue);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteVenue(Guid id, CancellationToken ct)
+    {
+        var deleted = await _venueService.DeleteVenueAsync(id, ct);
+
+        if (!deleted)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return NoContent();
+    }
 }

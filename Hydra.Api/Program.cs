@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
 using Hydra.Api.Caching;
+using Hydra.Api.Repositories.Venues;
+using Hydra.Api.Services.Venues;
+using Hydra.Api.Repositories.Customers;
+using Hydra.Api.Services.Customers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +21,11 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisCs));
 builder.Services.AddSingleton<ICache, RedisCache>();
+
+builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+builder.Services.AddScoped<IVenueService, VenueService>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
