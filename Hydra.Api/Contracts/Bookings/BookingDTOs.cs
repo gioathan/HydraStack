@@ -27,3 +27,15 @@ public record CancelBookingRequest(
     string? Reason = null
 );
 
+public record AvailabilityDto(
+    Guid VenueId,
+    DateOnly Date,
+    int PartySize,
+    bool IsAvailable,
+    string Reason,
+    List<TimeSlot> AvailableSlots);
+
+public record TimeSlot(
+    DateTime StartUtc,
+    DateTime EndUtc);
+

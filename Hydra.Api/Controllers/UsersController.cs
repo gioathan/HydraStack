@@ -1,11 +1,13 @@
 using Hydra.Api.Contracts.Users;
 using Hydra.Api.Services.Users;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 
 namespace Hydra.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class UsersController : ControllerBase
 {
 	private readonly IUserService _userService;

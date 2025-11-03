@@ -1,11 +1,13 @@
 ﻿using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Services.Venues;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 
 namespace Hydra.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
 public class VenuesController : ControllerBase
 {
     private readonly IVenueService _venueService;
