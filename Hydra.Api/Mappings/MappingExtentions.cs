@@ -3,18 +3,12 @@ using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Contracts.Bookings;
 using Hydra.Api.Contracts.Users;
+using Hydra.Api.Contracts.VenueTypes;
 
 namespace Hydra.Api.Mapping;
 
 public static class MappingExtensions
 {
-    // ==========================================
-    // VENUE MAPPINGS
-    // ==========================================
-
-    /// <summary>
-    /// Model → DTO
-    /// </summary>
     public static VenueDto ToDto(this Venue venue) =>
         new(
             venue.Id,
@@ -23,35 +17,23 @@ public static class MappingExtensions
             venue.Capacity
         );
 
-    /// <summary>
-    /// DTO → Model (Create)
-    /// </summary>
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
         {
             Name = request.Name,
             Address = request.Address,
-            Capacity = request.Capacity
-            // NOTE: Venue model does not have CreatedAtUtc in your code
+            Capacity = request.Capacity,
+            VenueTypeId = request.VenueTypeId
         };
 
-    /// <summary>
-    /// DTO → Model (Update)
-    /// </summary>
     public static void UpdateFrom(this Venue venue, UpdateVenueRequest request)
     {
         venue.Name = request.Name;
         venue.Address = request.Address;
         venue.Capacity = request.Capacity;
+        venue.VenueTypeId = request.VenueTypeId;
     }
 
-    // ==========================================
-    // CUSTOMER MAPPINGS
-    // ==========================================
-
-    /// <summary>
-    /// Model → DTO
-    /// </summary>
     public static CustomerDto ToDto(this Customer customer) =>
         new(
             customer.Id,
@@ -60,12 +42,9 @@ public static class MappingExtensions
             customer.Locale,
             customer.MarketingOptIn,
             customer.CreatedAtUtc,
-            customer.Name // your model DOES have Name
+            customer.Name
         );
 
-    /// <summary>
-    /// DTO → Model (Create)
-    /// </summary>
     public static Customer ToModel(this CreateCustomerRequest request) =>
         new()
         {
@@ -77,13 +56,6 @@ public static class MappingExtensions
             Name = request.Name
         };
 
-    // ==========================================
-    // BOOKING MAPPINGS
-    // ==========================================
-
-    /// <summary>
-    /// Model → DTO
-    /// </summary>
     public static BookingDto ToDto(this Booking booking) =>
         new(
             booking.Id,
@@ -97,9 +69,6 @@ public static class MappingExtensions
             booking.UpdatedAtUtc
         );
 
-    /// <summary>
-    /// DTO → Model (Create)
-    /// </summary>
     public static Booking ToModel(this CreateBookingRequest request) =>
         new()
         {
@@ -112,10 +81,6 @@ public static class MappingExtensions
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow
         };
-
-    // ==========================================
-    // BOOKING STATE HELPERS (fit current model)
-    // ==========================================
 
     public static void Confirm(this Booking booking)
     {
@@ -144,7 +109,6 @@ public static class MappingExtensions
         booking.UpdatedAtUtc = DateTime.UtcNow;
     }
 
-    /// <summary>Model → DTO</summary>
     public static UserDto ToDto(this User user) =>
         new(
             user.Id,
@@ -152,12 +116,34 @@ public static class MappingExtensions
             user.Role.ToString()
         );
 
-    /// <summary>DTO → Model (Create)</summary>
     public static User ToModel(this CreateUserRequest request) =>
         new()
         {
             Email = request.Email,
-            PasswordHash = "" ,
+            PasswordHash = "",
             Role = Enum.Parse<UserRole>(request.Role, ignoreCase: true)
         };
+
+    public static VenueTypeDto ToDto(this VenueType venueType) =>
+        new(
+            venueType.Id,
+            venueType.Name,
+            venueType.Description,
+            venueType.DisplayOrder
+        );
+
+    public static VenueType ToModel(this CreateVenueTypeRequest request) =>
+        new()
+        {
+            Name = request.Name,
+            Description = request.Description,
+            DisplayOrder = request.DisplayOrder
+        };
+
+    public static void UpdateFrom(this VenueType venueType, UpdateVenueTypeRequest request)
+    {
+        venueType.Name = request.Name;
+        venueType.Description = request.Description;
+        venueType.DisplayOrder = request.DisplayOrder;
+    }
 }

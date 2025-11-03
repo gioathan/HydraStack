@@ -12,6 +12,8 @@ using Hydra.Api.Repositories.Users;
 using Hydra.Api.Services.Users;
 using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Services.Bookings;
+using Hydra.Api.Repositories.VenueTypes;
+using Hydra.Api.Services.VenueTypes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +37,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IVenueTypeRepository, VenueTypeRepository>();
+builder.Services.AddScoped<IVenueTypeService, VenueTypeService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
