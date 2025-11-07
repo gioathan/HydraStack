@@ -3,6 +3,7 @@
 public record CreateCustomerRequest(
     string? Email,
     string? Phone,
+    Guid UserId,
     string Locale = "en",
     bool MarketingOptIn = false,
     string? Name = null);

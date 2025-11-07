@@ -11,3 +11,5 @@ public record CreateUserRequest(
     string Password,
     string Role
 );
+
+public record AuthResponse(UserDto User, string Token);

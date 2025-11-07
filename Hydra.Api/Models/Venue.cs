@@ -3,7 +3,7 @@
 public class Venue
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid? UserId { get; set; }
+    public Guid UserId { get; set; }
     public User? User { get; set; }
     public Guid VenueTypeId { get; set; }
     public VenueType VenueType { get; set; } = default!;

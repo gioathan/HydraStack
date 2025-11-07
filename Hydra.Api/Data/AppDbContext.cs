@@ -60,7 +60,7 @@ namespace Hydra.Api.Data
                 b.HasOne(v => v.User)
                     .WithMany()
                     .HasForeignKey(v => v.UserId)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 b.HasOne(v => v.Rules)
                     .WithOne(r => r.Venue)
@@ -98,7 +98,7 @@ namespace Hydra.Api.Data
                 b.HasOne(c => c.User)
                     .WithMany()
                     .HasForeignKey(c => c.UserId)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 b.HasMany(c => c.Bookings)
                     .WithOne(bk => bk.Customer)

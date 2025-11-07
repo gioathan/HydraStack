@@ -3,6 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
 using Asp.Versioning;
+using Serilog;
+using Serilog.Events;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Hydra.Api.Auth;
 using Hydra.Api.Caching;
 using Hydra.Api.Middleware;
 using Hydra.Api.Repositories.Venues;
@@ -15,8 +21,6 @@ using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Services.Bookings;
 using Hydra.Api.Repositories.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
-using Serilog;
-using Serilog.Events;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -68,15 +72,39 @@ try
     builder.Services.AddScoped<IVenueTypeRepository, VenueTypeRepository>();
     builder.Services.AddScoped<IVenueTypeService, VenueTypeService>();
 
+    builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+    builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+    var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
         {
-            // example domains for now until frontend is up
             policy.WithOrigins(
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "http://localhost:4200",
+                "http://localhost:4200"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -130,6 +158,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors();
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
 

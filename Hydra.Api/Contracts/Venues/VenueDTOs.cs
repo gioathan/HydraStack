@@ -4,7 +4,8 @@ public record CreateVenueRequest(
     string Name,
     string Address,
     int Capacity,
-    Guid VenueTypeId);
+    Guid VenueTypeId,
+    Guid UserId);
 
 public record UpdateVenueRequest(
     string Name,

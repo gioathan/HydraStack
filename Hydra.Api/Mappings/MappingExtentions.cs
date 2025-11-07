@@ -23,7 +23,8 @@ public static class MappingExtensions
             Name = request.Name,
             Address = request.Address,
             Capacity = request.Capacity,
-            VenueTypeId = request.VenueTypeId
+            VenueTypeId = request.VenueTypeId,
+            UserId = request.UserId
         };
 
     public static void UpdateFrom(this Venue venue, UpdateVenueRequest request)
@@ -53,7 +54,8 @@ public static class MappingExtensions
             Locale = request.Locale,
             MarketingOptIn = request.MarketingOptIn,
             CreatedAtUtc = DateTime.UtcNow,
-            Name = request.Name
+            Name = request.Name,
+            UserId = request.UserId
         };
 
     public static BookingDto ToDto(this Booking booking) =>
@@ -116,13 +118,22 @@ public static class MappingExtensions
             user.Role.ToString()
         );
 
-    public static User ToModel(this CreateUserRequest request) =>
-        new()
+    public static User ToModel(this CreateUserRequest request)
+    {
+        var role = UserRole.Customer; // default
+        if (!string.IsNullOrWhiteSpace(request.Role) &&
+            Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var parsed))
+        {
+            role = parsed;
+        }
+
+        return new User
         {
             Email = request.Email,
             PasswordHash = "",
-            Role = Enum.Parse<UserRole>(request.Role, ignoreCase: true)
+            Role = role
         };
+    }
 
     public static VenueTypeDto ToDto(this VenueType venueType) =>
         new(

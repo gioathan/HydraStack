@@ -1,15 +1,9 @@
-﻿# Use docker compose as default command
-COMPOSE ?= docker compose
+﻿.PHONY: run rerun
 
-# --- Commands ---
-.PHONY: run rerun
-
-# Start project normally
 run:
-	$(COMPOSE) up -d
+	 docker compose up -d
 
-# Full reset: stop, remove volumes, rebuild, start
 rerun:
-	$(COMPOSE) down -v
-	$(COMPOSE) build --no-cache
-	$(COMPOSE) up -d
+	 docker compose down -v
+	 docker compose build --no-cache
+	 docker compose up -d
