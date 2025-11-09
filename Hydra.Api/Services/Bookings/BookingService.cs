@@ -49,6 +49,16 @@ public class BookingService : IBookingService
         );
     }
 
+    public async Task<List<BookingDto>> GetBookingsForAdminAsync(
+        Guid adminUserId,
+        Guid? venueId,
+        string? status,
+        CancellationToken ct)
+    {
+        var bookings = await _bookingRepo.GetBookingsByAdminUserIdAsync(adminUserId, venueId, status, ct);
+        return bookings.Select(b => b.ToDto()).ToList();
+    }
+
     public async Task<BookingDto?> GetBookingByIdAsync(Guid id, CancellationToken ct = default)
     {
         var version = await _cache.GetTokenAsync(CacheKeys.BookingsToken, ct: ct);

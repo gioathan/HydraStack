@@ -26,6 +26,12 @@ public class CustomerRepository : ICustomerRepository
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
+    public async Task<Customer?> GetByUserIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.Customers
+            .FirstOrDefaultAsync(c => c.UserId == id, ct);
+    }
+
     public async Task<Customer?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         return await _context.Customers
@@ -54,6 +60,18 @@ public class CustomerRepository : ICustomerRepository
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var customer = await _context.Customers.FindAsync(new object[] { id }, ct);
+        if (customer is not null)
+        {
+            _context.Customers.Remove(customer);
+            await _context.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task DeleteByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        var customer = await _context.Customers
+            .FirstOrDefaultAsync(c => c.UserId == userId, ct);
+
         if (customer is not null)
         {
             _context.Customers.Remove(customer);

@@ -2,6 +2,8 @@ using Asp.Versioning;
 using Hydra.Api.Contracts.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -18,6 +20,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
     public async Task<ActionResult<List<VenueTypeDto>>> GetAllVenueTypes(CancellationToken ct)
     {
         var venueTypes = await _venueTypeService.GetAllVenueTypesAsync(ct);
@@ -25,6 +28,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
     public async Task<ActionResult<VenueTypeDto>> GetVenueTypeById(Guid id, CancellationToken ct)
     {
         var venueType = await _venueTypeService.GetVenueTypeByIdAsync(id, ct);
@@ -36,6 +40,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<VenueTypeDto>> CreateVenueType(
         [FromBody] CreateVenueTypeRequest request,
         CancellationToken ct)
@@ -52,6 +57,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<VenueTypeDto>> UpdateVenueType(
         Guid id,
         [FromBody] UpdateVenueTypeRequest request,
@@ -73,6 +79,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<IActionResult> DeleteVenueType(Guid id, CancellationToken ct)
     {
         var deleted = await _venueTypeService.DeleteVenueTypeAsync(id, ct);

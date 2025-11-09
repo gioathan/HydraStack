@@ -1,14 +1,8 @@
-using Hydra.Api.Data;
+﻿using Hydra.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
 using Asp.Versioning;
-using Serilog;
-using Serilog.Events;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Hydra.Api.Auth;
 using Hydra.Api.Caching;
 using Hydra.Api.Middleware;
 using Hydra.Api.Repositories.Venues;
@@ -21,6 +15,13 @@ using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Services.Bookings;
 using Hydra.Api.Repositories.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
+using Serilog;
+using Serilog.Events;
+using Hydra.Api.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.OpenApi.Models;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -51,8 +52,8 @@ try
     builder.Host.UseSerilog();
 
     var pgCs = builder.Configuration.GetConnectionString("Postgres")
-                 ?? "Host=postgres;Port=5432;Database=hydra;Username=app;Password=app";
-    var redisCs = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379";
+                 ?? "Host=localhost;Port=5432;Database=hydra;Username=app;Password=app";
+    var redisCs = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 
     builder.Services.AddDbContext<AppDbContext>(opt =>
         opt.UseNpgsql(pgCs)
@@ -127,7 +128,45 @@ try
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+
+    // ========================================
+    // SWAGGER WITH JWT SUPPORT
+    // ========================================
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "Hydra Booking API",
+            Version = "v1",
+            Description = "Restaurant booking management system with JWT authentication"
+        });
+
+        // Add JWT Authentication to Swagger
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Enter your JWT token in the text input below.\n\nExample: \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\""
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    });
 
     var app = builder.Build();
 

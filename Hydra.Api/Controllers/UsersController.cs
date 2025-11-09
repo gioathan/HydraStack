@@ -1,9 +1,13 @@
 using Hydra.Api.Contracts.Users;
+using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Services.Users;
+using Hydra.Api.Services.Customers;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Hydra.Api.Auth;
 using Hydra.Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -13,34 +17,68 @@ namespace Hydra.Api.Controllers;
 public class UsersController : ControllerBase
 {
 	private readonly IUserService _userService;
+    private readonly ICustomerService _customerService;
     private readonly IJwtTokenService _jwt;
 
-    public UsersController(IUserService userService, IJwtTokenService jwt)
+    public UsersController(IUserService userService, ICustomerService customerService, IJwtTokenService jwt)
 	{
 		_userService = userService;
+        _customerService = customerService;
         _jwt = jwt;
     }
 
     [HttpGet]
-	public async Task<ActionResult<List<UserDto>>> GetAllUsers(CancellationToken ct)
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<List<UserDto>>> GetAllUsers(CancellationToken ct)
 	{
 		var users = await _userService.GetAllUsersAsync(ct);
 		return Ok(users);
 	}
 
-	[HttpGet("{id:guid}")]
-	public async Task<ActionResult<UserDto>> GetUserById(Guid id, CancellationToken ct)
-	{
-		var user = await _userService.GetUserByIdAsync(id, ct);
+    [HttpGet("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin,Admin,Customer")]
+    public async Task<ActionResult<UserDto>> GetUserById(Guid id, CancellationToken ct)
+    {
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-		if (user is null)
-			return NotFound(new { message = $"User with ID {id} not found" });
+        if ((userRole == "Customer" || userRole == "Admin") && currentUserId != id.ToString())
+        {
+            return Forbid();
+        }
 
-		return Ok(user);
-	}
+        var user = await _userService.GetUserByIdAsync(id, ct);
+        if (user is null)
+            return NotFound(new { message = $"User with ID {id} not found" });
+
+        return Ok(user);
+    }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register(
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<AuthResponse>> RegisterByAdmin(
+        [FromBody] CreateUserRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var user = await _userService.CreateUserAsync(request, ct);
+
+            var token = _jwt.GenerateToken(
+                user.Id,
+                user.Email,
+                Enum.Parse<UserRole>(user.Role, ignoreCase: true));
+
+            return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, new AuthResponse(user, token));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("registerUser")]
+    public async Task<ActionResult<AuthResponse>> RegisterPublic(
             [FromBody] CreateUserRequest request,
             CancellationToken ct)
     {
@@ -48,11 +86,10 @@ public class UsersController : ControllerBase
         {
             var user = await _userService.CreateUserAsync(request, ct);
 
-            // Build token using the dto fields
             var token = _jwt.GenerateToken(
                 user.Id,
                 user.Email,
-                Enum.Parse<UserRole>(user.Role, ignoreCase: true)); // dto.Role is string
+                UserRole.Customer);
 
             return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, new AuthResponse(user, token));
         }
@@ -80,7 +117,8 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-	public async Task<IActionResult> DeleteUser(Guid id, CancellationToken ct)
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> DeleteUser(Guid id, CancellationToken ct)
 	{
 		var deleted = await _userService.DeleteUserAsync(id, ct);
 
@@ -89,6 +127,91 @@ public class UsersController : ControllerBase
 
 		return NoContent();
 	}
+
+    [HttpGet("{id:guid}/customer")]
+    [Authorize(Roles = "SuperAdmin,Admin,Customer")]
+    public async Task<ActionResult<CustomerDto>> GetCustomerByUserId(Guid id, CancellationToken ct)
+    {
+        var currentUserIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userRole == "Customer")
+        {
+            if (string.IsNullOrEmpty(currentUserIdString) ||
+                !Guid.TryParse(currentUserIdString, out var currentUserId) ||
+                currentUserId != id)
+            {
+                return Forbid();
+            }
+        }
+
+        var customer = await _customerService.GetCustomerByUserIdAsync(id, ct);
+
+        if (customer is null)
+            return NotFound(new { message = $"Customer with User ID {id} not found" });
+
+        return Ok(customer);
+    }
+
+    [HttpPut("{id:guid}/customer")]
+    [Authorize(Roles = "SuperAdmin,Customer")]
+    public async Task<ActionResult<CustomerDto>> UpdateCustomerByUserId(
+    Guid id,
+    [FromBody] CreateCustomerRequest request,
+    CancellationToken ct)
+    {
+        var currentUserIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userRole == "Customer")
+        {
+            if (string.IsNullOrEmpty(currentUserIdString) ||
+                !Guid.TryParse(currentUserIdString, out var currentUserId) ||
+                currentUserId != id)
+            {
+                return Forbid();
+            }
+        }
+
+        try
+        {
+            var customer = await _customerService.UpdateCustomerByUserIdAsync(id, request, ct);
+
+            if (customer is null)
+                return NotFound(new { message = $"Customer with User ID {id} not found" });
+
+            return Ok(customer);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:guid}/customer")]
+    [Authorize(Roles = "SuperAdmin,Customer")]
+    public async Task<IActionResult> DeleteByUserIdCustomer(Guid id, CancellationToken ct)
+    {
+        var currentUserIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userRole == "Customer")
+        {
+            if (string.IsNullOrEmpty(currentUserIdString) ||
+                !Guid.TryParse(currentUserIdString, out var currentUserId) ||
+                currentUserId != id)
+            {
+                return Forbid();
+            }
+        }
+
+        var deleted = await _customerService.DeleteCustomerByUserIdAsync(id, ct);
+
+        if (!deleted)
+            return NotFound(new { message = $"Customer with User ID {id} not found" });
+
+        return NoContent();
+    }
 }
 
 public record LoginRequest(string Email, string Password);

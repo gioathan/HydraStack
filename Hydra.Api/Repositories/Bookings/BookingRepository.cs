@@ -38,6 +38,28 @@ public class BookingRepository : IBookingRepository
             .ToListAsync(ct);
     }
 
+    public async Task<List<Booking>> GetBookingsByAdminUserIdAsync(
+        Guid adminUserId,
+        Guid? venueId,
+        string? status,
+        CancellationToken ct)
+    {
+        var query = _context.Bookings
+            .Include(b => b.Venue)
+            .Include(b => b.Customer)
+            .Where(b => b.Venue.UserId == adminUserId);
+
+        if (venueId.HasValue)
+            query = query.Where(b => b.VenueId == venueId.Value);
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+            query = query.Where(b => b.Status == statusEnum);
+
+        return await query
+            .OrderByDescending(b => b.CreatedAtUtc)
+            .ToListAsync(ct);
+    }
+
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Bookings

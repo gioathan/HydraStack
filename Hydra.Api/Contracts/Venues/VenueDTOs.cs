@@ -17,4 +17,5 @@ public record VenueDto(
     Guid Id,
     string Name,
     string Address,
-    int Capacity);
+    int Capacity,
+    Guid UserId);

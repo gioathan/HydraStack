@@ -14,7 +14,8 @@ public static class MappingExtensions
             venue.Id,
             venue.Name,
             venue.Address,
-            venue.Capacity
+            venue.Capacity,
+            venue.UserId
         );
 
     public static Venue ToModel(this CreateVenueRequest request) =>

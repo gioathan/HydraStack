@@ -2,6 +2,8 @@
 using Hydra.Api.Services.Customers;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -18,6 +20,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<List<CustomerDto>>> GetCustomers(
         [FromQuery] string? email,
         [FromQuery] string? phone,
@@ -44,6 +47,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<CustomerDto>> GetCustomerById(Guid id, CancellationToken ct)
     {
         var customer = await _customerService.GetCustomerByIdAsync(id, ct);
@@ -55,6 +59,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin,Customer")]
     public async Task<ActionResult<CustomerDto>> CreateCustomer(
         [FromBody] CreateCustomerRequest request,
         CancellationToken ct)
@@ -71,6 +76,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<CustomerDto>> UpdateCustomer(
         Guid id,
         [FromBody] CreateCustomerRequest request,
@@ -92,6 +98,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<IActionResult> DeleteCustomer(Guid id, CancellationToken ct)
     {
         var deleted = await _customerService.DeleteCustomerAsync(id, ct);
