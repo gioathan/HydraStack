@@ -7,12 +7,12 @@ namespace Hydra.Api.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<User> Users => Set<User>();
-        public DbSet<VenueType> VenueTypes => Set<VenueType>();
-        public DbSet<Venue> Venues => Set<Venue>();
-        public DbSet<BookingRules> BookingRules => Set<BookingRules>();
-        public DbSet<Customer> Customers => Set<Customer>();
-        public DbSet<Booking> Bookings => Set<Booking>();
+        public virtual DbSet<User> Users => Set<User>();
+        public virtual DbSet<VenueType> VenueTypes => Set<VenueType>();
+        public virtual DbSet<Venue> Venues => Set<Venue>();
+        public virtual DbSet<BookingRules> BookingRules => Set<BookingRules>();
+        public virtual DbSet<Customer> Customers => Set<Customer>();
+        public virtual DbSet<Booking> Bookings => Set<Booking>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
