@@ -16,6 +16,7 @@ public class UserRepository : IUserRepository
     public async Task<List<User>> GetAllAsync(CancellationToken ct = default)
     {
         return await _context.Users
+            .AsNoTracking()
             .OrderBy(u => u.Email)
             .ToListAsync(ct);
     }
@@ -23,12 +24,14 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == id, ct);
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         return await _context.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == email, ct);
     }
 

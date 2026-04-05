@@ -15,7 +15,8 @@ public static class MappingExtensions
             venue.Name,
             venue.Address,
             venue.Capacity,
-            venue.UserId
+            venue.UserId,
+            venue.VenueTypeId
         );
 
     public static Venue ToModel(this CreateVenueRequest request) =>
@@ -42,7 +43,6 @@ public static class MappingExtensions
             customer.Email,
             customer.Phone,
             customer.Locale,
-            customer.MarketingOptIn,
             customer.CreatedAtUtc,
             customer.Name
         );
@@ -53,7 +53,6 @@ public static class MappingExtensions
             Email = request.Email,
             Phone = request.Phone,
             Locale = request.Locale,
-            MarketingOptIn = request.MarketingOptIn,
             CreatedAtUtc = DateTime.UtcNow,
             Name = request.Name,
             UserId = request.UserId
@@ -157,5 +156,13 @@ public static class MappingExtensions
         venueType.Name = request.Name;
         venueType.Description = request.Description;
         venueType.DisplayOrder = request.DisplayOrder;
+    }
+
+    public static void UpdateFrom(this Customer customer, UpdateCustomerRequest request)
+    {
+        customer.Name = request.Name;
+        customer.Email = request.Email;
+        customer.Phone = request.Phone;
+        customer.Locale = request.Locale;
     }
 }

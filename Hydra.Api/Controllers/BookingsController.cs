@@ -1,10 +1,10 @@
 ﻿using Hydra.Api.Contracts.Bookings;
 using Hydra.Api.Services.Bookings;
 using Hydra.Api.Services.Venues;
+using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -30,35 +30,25 @@ public class BookingsController : ControllerBase
         [FromQuery] string? status,
         CancellationToken ct)
     {
-        var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+        var role = User.GetRole();
 
-        if (userRole == "SuperAdmin")
-        {
-            var allBookings = await _bookingService.GetAllBookingsAsync(venueId, customerId, status, ct);
-            return Ok(allBookings);
-        }
+        if (role == "SuperAdmin")
+            return Ok(await _bookingService.GetAllBookingsAsync(venueId, customerId, status, ct));
 
-        if (userRole == "Admin")
+        if (role == "Admin")
         {
             if (venueId.HasValue)
             {
                 var venue = await _venueService.GetVenueByIdAsync(venueId.Value, ct);
-                if (venue?.UserId != currentUserId)
-                {
+                if (venue?.UserId != User.GetUserId())
                     return Forbid();
-                }
             }
-            
-            var adminBookings = await _bookingService.GetBookingsForAdminAsync(currentUserId, venueId, status, ct);
-            return Ok(adminBookings);
+
+            return Ok(await _bookingService.GetBookingsForAdminAsync(User.GetUserId(), venueId, status, ct));
         }
 
-        if (userRole == "Customer")
-        {
-            var customerBookings = await _bookingService.GetAllBookingsAsync(venueId, currentUserId, status, ct);
-            return Ok(customerBookings);
-        }
+        if (role == "Customer")
+            return Ok(await _bookingService.GetAllBookingsAsync(venueId, User.GetCustomerId(), status, ct));
 
         return Forbid();
     }
@@ -66,33 +56,25 @@ public class BookingsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<BookingDto>> GetBookingById(Guid id, CancellationToken ct)
     {
-        var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
         var booking = await _bookingService.GetBookingByIdAsync(id, ct);
-
         if (booking is null)
             return NotFound(new { message = $"Booking with ID {id} not found" });
 
-        if (userRole == "SuperAdmin")
-        {
-            return Ok(booking);
-        }
+        var role = User.GetRole();
 
-        if (userRole == "Admin")
+        if (role == "SuperAdmin")
+            return Ok(booking);
+
+        if (role == "Admin")
         {
             var venue = await _venueService.GetVenueByIdAsync(booking.VenueId, ct);
-            if (venue?.UserId != currentUserId)
-            {
+            if (venue?.UserId != User.GetUserId())
                 return Forbid();
-            }
             return Ok(booking);
         }
 
-        if (userRole == "Customer" && booking.CustomerId == currentUserId)
-        {
+        if (role == "Customer" && booking.CustomerId == User.GetCustomerId())
             return Ok(booking);
-        }
 
         return Forbid();
     }
@@ -103,15 +85,11 @@ public class BookingsController : ControllerBase
         [FromBody] CreateBookingRequest request,
         CancellationToken ct)
     {
+        if (request.CustomerId != User.GetCustomerId())
+            return Forbid();
+
         try
         {
-            var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            
-            if (request.CustomerId != currentUserId)
-            {
-                return Forbid();
-            }
-
             var booking = await _bookingService.CreateBookingAsync(request, ct);
             return CreatedAtAction(nameof(GetBookingById), new { id = booking.Id }, booking);
         }
@@ -130,24 +108,18 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
             var booking = await _bookingService.GetBookingByIdAsync(id, ct);
             if (booking is null)
                 return NotFound(new { message = $"Booking with ID {id} not found" });
 
-            if (userRole == "Admin")
+            if (User.GetRole() == "Admin")
             {
                 var venue = await _venueService.GetVenueByIdAsync(booking.VenueId, ct);
-                if (venue?.UserId != currentUserId)
-                {
+                if (venue?.UserId != User.GetUserId())
                     return Forbid();
-                }
             }
 
-            var confirmedBooking = await _bookingService.ConfirmBookingAsync(id, request, ct);
-            return Ok(confirmedBooking);
+            return Ok(await _bookingService.ConfirmBookingAsync(id, request, ct));
         }
         catch (InvalidOperationException ex)
         {
@@ -164,24 +136,18 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
             var booking = await _bookingService.GetBookingByIdAsync(id, ct);
             if (booking is null)
                 return NotFound(new { message = $"Booking with ID {id} not found" });
 
-            if (userRole == "Admin")
+            if (User.GetRole() == "Admin")
             {
                 var venue = await _venueService.GetVenueByIdAsync(booking.VenueId, ct);
-                if (venue?.UserId != currentUserId)
-                {
+                if (venue?.UserId != User.GetUserId())
                     return Forbid();
-                }
             }
 
-            var declinedBooking = await _bookingService.DeclineBookingAsync(id, request, ct);
-            return Ok(declinedBooking);
+            return Ok(await _bookingService.DeclineBookingAsync(id, request, ct));
         }
         catch (InvalidOperationException ex)
         {
@@ -197,36 +163,25 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
             var booking = await _bookingService.GetBookingByIdAsync(id, ct);
             if (booking is null)
                 return NotFound(new { message = $"Booking with ID {id} not found" });
 
-            if (userRole == "SuperAdmin")
-            {
-                var cancelledBooking = await _bookingService.CancelBookingAsync(id, request, ct);
-                return Ok(cancelledBooking);
-            }
+            var role = User.GetRole();
 
-            if (userRole == "Admin")
+            if (role == "SuperAdmin")
+                return Ok(await _bookingService.CancelBookingAsync(id, request, ct));
+
+            if (role == "Admin")
             {
                 var venue = await _venueService.GetVenueByIdAsync(booking.VenueId, ct);
-                if (venue?.UserId != currentUserId)
-                {
+                if (venue?.UserId != User.GetUserId())
                     return Forbid();
-                }
-                var cancelledBooking = await _bookingService.CancelBookingAsync(id, request, ct);
-                return Ok(cancelledBooking);
+                return Ok(await _bookingService.CancelBookingAsync(id, request, ct));
             }
 
-            // Customer can only cancel their own bookings
-            if (userRole == "Customer" && booking.CustomerId == currentUserId)
-            {
-                var cancelledBooking = await _bookingService.CancelBookingAsync(id, request, ct);
-                return Ok(cancelledBooking);
-            }
+            if (role == "Customer" && booking.CustomerId == User.GetCustomerId())
+                return Ok(await _bookingService.CancelBookingAsync(id, request, ct));
 
             return Forbid();
         }
@@ -245,14 +200,10 @@ public class BookingsController : ControllerBase
         CancellationToken ct)
     {
         if (!DateOnly.TryParse(date, out var parsedDate))
-        {
             return BadRequest(new { message = "Invalid date format. Use YYYY-MM-DD" });
-        }
 
         if (partySize <= 0)
-        {
             return BadRequest(new { message = "Party size must be greater than 0" });
-        }
 
         var availability = await _bookingService.CheckAvailabilityAsync(venueId, parsedDate, partySize, ct);
         return Ok(availability);

@@ -5,7 +5,12 @@ public record CreateCustomerRequest(
     string? Phone,
     Guid UserId,
     string Locale = "en",
-    bool MarketingOptIn = false,
+    string? Name = null);
+
+public record UpdateCustomerRequest(
+    string? Email,
+    string? Phone,
+    string Locale = "en",
     string? Name = null);
 
 public record CustomerDto(
@@ -13,6 +18,5 @@ public record CustomerDto(
     string? Email,
     string? Phone,
     string Locale,
-    bool MarketingOptIn,
     DateTime CreatedAtUtc,
     string? Name);

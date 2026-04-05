@@ -34,7 +34,7 @@ public class BookingService : IBookingService
         CancellationToken ct = default)
     {
         var version = await _cache.GetTokenAsync(CacheKeys.BookingsToken, ct: ct);
-        var key = CacheKeys.BookingsList(venueId, customerId, version);
+        var key = CacheKeys.BookingsList(venueId, customerId, status, version);
 
         return await _cache.GetOrSetAsync(
             key: key,

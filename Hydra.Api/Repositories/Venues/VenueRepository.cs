@@ -16,6 +16,7 @@ public class VenueRepository : IVenueRepository
     public async Task<List<Venue>> GetAllAsync(CancellationToken ct = default)
     {
         return await _context.Venues
+            .AsNoTracking()
             .Include(v => v.VenueType)
             .ToListAsync(ct);
     }
@@ -23,13 +24,23 @@ public class VenueRepository : IVenueRepository
     public async Task<Venue?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Venues
+            .AsNoTracking()
             .Include(v => v.VenueType)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
+    }
+
+    public async Task<Venue?> GetByUserIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.Venues
+            .AsNoTracking()
+            .Include(v => v.VenueType)
+            .FirstOrDefaultAsync(v => v.UserId == id, ct);
     }
 
     public async Task<Venue?> GetByIdWithRulesAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Venues
+            .AsNoTracking()
             .Include(v => v.VenueType)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
@@ -46,15 +57,5 @@ public class VenueRepository : IVenueRepository
     {
         _context.Venues.Update(venue);
         await _context.SaveChangesAsync(ct);
-    }
-
-    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
-    {
-        var venue = await _context.Venues.FindAsync(new object[] { id }, ct);
-        if (venue is not null)
-        {
-            _context.Venues.Remove(venue);
-            await _context.SaveChangesAsync(ct);
-        }
     }
 }

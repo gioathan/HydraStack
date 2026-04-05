@@ -133,16 +133,12 @@ public static class CacheKeys
     /// <param name="customerId">Optional customer ID filter</param>
     /// <param name="version">Version number from BookingsToken</param>
     /// <returns>Versioned cache key for booking list with filters</returns>
-    public static string BookingsList(Guid? venueId, Guid? customerId, int version)
+    public static string BookingsList(Guid? venueId, Guid? customerId, string? status, int version)
     {
         var parts = new List<string> { Ns, "bookings", $"v{version}" };
-
-        if (venueId.HasValue)
-            parts.Add($"venue:{venueId}");
-
-        if (customerId.HasValue)
-            parts.Add($"customer:{customerId}");
-
+        if (venueId.HasValue) parts.Add($"venue:{venueId}");
+        if (customerId.HasValue) parts.Add($"customer:{customerId}");
+        if (!string.IsNullOrWhiteSpace(status)) parts.Add($"status:{status.ToLower()}");
         return string.Join(":", parts);
     }
 }

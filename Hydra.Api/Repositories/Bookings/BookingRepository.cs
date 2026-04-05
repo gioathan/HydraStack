@@ -20,6 +20,7 @@ public class BookingRepository : IBookingRepository
         CancellationToken ct = default)
     {
         var query = _context.Bookings
+            .AsNoTracking()
             .Include(b => b.Venue)
             .Include(b => b.Customer)
             .AsQueryable();
@@ -45,6 +46,7 @@ public class BookingRepository : IBookingRepository
         CancellationToken ct)
     {
         var query = _context.Bookings
+            .AsNoTracking()
             .Include(b => b.Venue)
             .Include(b => b.Customer)
             .Where(b => b.Venue.UserId == adminUserId);
@@ -63,6 +65,7 @@ public class BookingRepository : IBookingRepository
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Bookings
+            .AsNoTracking()
             .Include(b => b.Venue)
             .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
@@ -75,8 +78,9 @@ public class BookingRepository : IBookingRepository
         CancellationToken ct = default)
     {
         return await _context.Bookings
+            .AsNoTracking()
             .Where(b => b.VenueId == venueId)
-            .Where(b => b.Status == BookingStatus.Confirmed)
+            .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending)
             .Where(b => b.StartUtc < endUtc && b.EndUtc > startUtc)
             .ToListAsync(ct);
     }
@@ -90,6 +94,7 @@ public class BookingRepository : IBookingRepository
         var endOfDay = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
         return await _context.Bookings
+            .AsNoTracking()
             .Where(b => b.VenueId == venueId)
             .Where(b => b.Status == BookingStatus.Confirmed)
             .Where(b => b.StartUtc >= startOfDay && b.StartUtc < endOfDay)

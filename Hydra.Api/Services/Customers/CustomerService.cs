@@ -25,12 +25,6 @@ public class CustomerService : ICustomerService
         return customer?.ToDto();
     }
 
-    public async Task<CustomerDto?> GetCustomerByUserIdAsync(Guid id, CancellationToken ct = default)
-    {
-        var customer = await _customerRepo.GetByUserIdAsync(id, ct);
-        return customer?.ToDto();
-    }
-
     public async Task<CustomerDto?> GetCustomerByEmailAsync(string email, CancellationToken ct = default)
     {
         var customer = await _customerRepo.GetByEmailAsync(email, ct);
@@ -74,7 +68,7 @@ public class CustomerService : ICustomerService
         return created.ToDto();
     }
 
-    public async Task<CustomerDto?> UpdateCustomerAsync(Guid id, CreateCustomerRequest request, CancellationToken ct = default)
+    public async Task<CustomerDto?> UpdateCustomerAsync(Guid id, UpdateCustomerRequest request, CancellationToken ct = default)
     {
         var customer = await _customerRepo.GetByIdAsync(id, ct);
         if (customer is null)
@@ -103,74 +97,9 @@ public class CustomerService : ICustomerService
             }
         }
 
-        customer.Name = request.Name;
-        customer.Email = request.Email;
-        customer.Phone = request.Phone;
-        customer.Locale = request.Locale;
-        customer.MarketingOptIn = request.MarketingOptIn;
-
+        customer.UpdateFrom(request);
         await _customerRepo.UpdateAsync(customer, ct);
 
         return customer.ToDto();
-    }
-
-    public async Task<CustomerDto?> UpdateCustomerByUserIdAsync(Guid id, CreateCustomerRequest request, CancellationToken ct = default)
-    {
-        var customer = await _customerRepo.GetByUserIdAsync(id, ct);
-        if (customer is null)
-            return null;
-
-        if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
-        {
-            throw new InvalidOperationException("Either Email or Phone must be provided");
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != customer.Email)
-        {
-            var existingByEmail = await _customerRepo.GetByEmailAsync(request.Email, ct);
-            if (existingByEmail is not null && existingByEmail.UserId != id)
-            {
-                throw new InvalidOperationException($"Customer with email '{request.Email}' already exists");
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Phone) && request.Phone != customer.Phone)
-        {
-            var existingByPhone = await _customerRepo.GetByPhoneAsync(request.Phone, ct);
-            if (existingByPhone is not null && existingByPhone.UserId != id)
-            {
-                throw new InvalidOperationException($"Customer with phone '{request.Phone}' already exists");
-            }
-        }
-
-        customer.Name = request.Name;
-        customer.Email = request.Email;
-        customer.Phone = request.Phone;
-        customer.Locale = request.Locale;
-        customer.MarketingOptIn = request.MarketingOptIn;
-
-        await _customerRepo.UpdateAsync(customer, ct);
-
-        return customer.ToDto();
-    }
-
-    public async Task<bool> DeleteCustomerAsync(Guid id, CancellationToken ct = default)
-    {
-        var customer = await _customerRepo.GetByIdAsync(id, ct);
-        if (customer is null)
-            return false;
-
-        await _customerRepo.DeleteAsync(id, ct);
-        return true;
-    }
-
-    public async Task<bool> DeleteCustomerByUserIdAsync(Guid id, CancellationToken ct = default)
-    {
-        var customer = await _customerRepo.GetByUserIdAsync(id, ct);
-        if (customer is null)
-            return false;
-
-        await _customerRepo.DeleteByUserIdAsync(id, ct);
-        return true;
     }
 }

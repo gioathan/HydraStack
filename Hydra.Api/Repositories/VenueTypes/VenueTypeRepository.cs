@@ -16,6 +16,7 @@ public class VenueTypeRepository : IVenueTypeRepository
     public async Task<List<VenueType>> GetAllAsync(CancellationToken ct = default)
     {
         return await _context.VenueTypes
+            .AsNoTracking()
             .OrderBy(vt => vt.DisplayOrder)
             .ThenBy(vt => vt.Name)
             .ToListAsync(ct);
@@ -24,6 +25,7 @@ public class VenueTypeRepository : IVenueTypeRepository
     public async Task<VenueType?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.VenueTypes
+            .AsNoTracking()
             .FirstOrDefaultAsync(vt => vt.Id == id, ct);
     }
 

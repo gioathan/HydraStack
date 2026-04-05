@@ -76,16 +76,4 @@ public class VenueService : IVenueService
 
         return venue.ToDto();
     }
-
-    public async Task<bool> DeleteVenueAsync(Guid id, CancellationToken ct = default)
-    {
-        var venue = await _venueRepo.GetByIdAsync(id, ct);
-        if (venue is null)
-            return false;
-
-        await _venueRepo.DeleteAsync(id, ct);
-        await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
-
-        return true;
-    }
 }

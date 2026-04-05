@@ -19,11 +19,9 @@ public record BookingDto(
     DateTime UpdatedAtUtc);
 
 public record BookingDecisionRequest(
-    string Admin,      // who decided (identifier/email)
     string? Note = null);
 
 public record CancelBookingRequest(
-    string? CancelledBy = null,
     string? Reason = null
 );
 

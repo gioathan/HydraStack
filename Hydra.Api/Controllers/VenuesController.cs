@@ -1,9 +1,9 @@
 ﻿using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Services.Venues;
+using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -23,8 +23,7 @@ public class VenuesController : ControllerBase
     [Authorize(Roles = "Customer,Admin,SuperAdmin")]
     public async Task<ActionResult<List<VenueDto>>> GetAllVenues(CancellationToken ct)
     {
-        var venues = await _venueService.GetAllVenuesAsync(ct);
-        return Ok(venues);
+        return Ok(await _venueService.GetAllVenuesAsync(ct));
     }
 
     [HttpGet("{id:guid}")]
@@ -32,47 +31,33 @@ public class VenuesController : ControllerBase
     public async Task<ActionResult<VenueDto>> GetVenueById(Guid id, CancellationToken ct)
     {
         var venue = await _venueService.GetVenueByIdAsync(id, ct);
-
         if (venue is null)
             return NotFound(new { message = $"Venue with ID {id} not found" });
 
         return Ok(venue);
     }
 
-    [HttpPost]
-    [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<VenueDto>> CreateVenue(
-        [FromBody] CreateVenueRequest request,
-        CancellationToken ct)
-    {
-        var venue = await _venueService.CreateVenueAsync(request, ct);
-        return CreatedAtAction(nameof(GetVenueById), new { id = venue.Id }, venue);
-    }
-
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<ActionResult<VenueDto>> UpdateVenue(
         Guid id,
         [FromBody] UpdateVenueRequest request,
         CancellationToken ct)
     {
-        var venue = await _venueService.UpdateVenueAsync(id, request, ct);
+        if (User.GetRole() == "Admin")
+        {
+            var existing = await _venueService.GetVenueByIdAsync(id, ct);
+            if (existing is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
 
+            if (existing.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var venue = await _venueService.UpdateVenueAsync(id, request, ct);
         if (venue is null)
             return NotFound(new { message = $"Venue with ID {id} not found" });
 
         return Ok(venue);
-    }
-
-    [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> DeleteVenue(Guid id, CancellationToken ct)
-    {
-        var deleted = await _venueService.DeleteVenueAsync(id, ct);
-
-        if (!deleted)
-            return NotFound(new { message = $"Venue with ID {id} not found" });
-
-        return NoContent();
     }
 }

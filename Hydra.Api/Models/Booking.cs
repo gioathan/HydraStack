@@ -18,8 +18,8 @@ public class Booking
     public Guid CustomerId { get; set; }
     public Customer Customer { get; set; } = default!;
 
-    public DateTime StartUtc { get; set; }      // request slot (UTC)
-    public DateTime EndUtc { get; set; }        // request slot end (UTC)
+    public DateTime StartUtc { get; set; }
+    public DateTime EndUtc { get; set; }
     public int PartySize { get; set; }
 
     public BookingStatus Status { get; set; } = BookingStatus.Pending;

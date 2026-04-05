@@ -9,7 +9,6 @@ public class Customer
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string Locale { get; set; } = "en";
-    public bool MarketingOptIn { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

@@ -3,7 +3,6 @@ using Hydra.Api.Contracts.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -23,8 +22,7 @@ public class VenueTypesController : ControllerBase
     [Authorize(Roles = "Customer,Admin,SuperAdmin")]
     public async Task<ActionResult<List<VenueTypeDto>>> GetAllVenueTypes(CancellationToken ct)
     {
-        var venueTypes = await _venueTypeService.GetAllVenueTypesAsync(ct);
-        return Ok(venueTypes);
+        return Ok(await _venueTypeService.GetAllVenueTypesAsync(ct));
     }
 
     [HttpGet("{id:guid}")]
@@ -32,7 +30,6 @@ public class VenueTypesController : ControllerBase
     public async Task<ActionResult<VenueTypeDto>> GetVenueTypeById(Guid id, CancellationToken ct)
     {
         var venueType = await _venueTypeService.GetVenueTypeByIdAsync(id, ct);
-
         if (venueType is null)
             return NotFound(new { message = $"VenueType with ID {id} not found" });
 
@@ -66,7 +63,6 @@ public class VenueTypesController : ControllerBase
         try
         {
             var venueType = await _venueTypeService.UpdateVenueTypeAsync(id, request, ct);
-
             if (venueType is null)
                 return NotFound(new { message = $"VenueType with ID {id} not found" });
 
@@ -83,7 +79,6 @@ public class VenueTypesController : ControllerBase
     public async Task<IActionResult> DeleteVenueType(Guid id, CancellationToken ct)
     {
         var deleted = await _venueTypeService.DeleteVenueTypeAsync(id, ct);
-
         if (!deleted)
             return NotFound(new { message = $"VenueType with ID {id} not found" });
 

@@ -1,9 +1,9 @@
 ﻿using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Services.Customers;
+using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 
 namespace Hydra.Api.Controllers;
 
@@ -29,63 +29,45 @@ public class CustomersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(email))
         {
             var customer = await _customerService.GetCustomerByEmailAsync(email, ct);
-            return customer is not null
-                ? Ok(new List<CustomerDto> { customer })
-                : Ok(new List<CustomerDto>());
+            return Ok(customer is not null ? new List<CustomerDto> { customer } : new List<CustomerDto>());
         }
 
         if (!string.IsNullOrWhiteSpace(phone))
         {
             var customer = await _customerService.GetCustomerByPhoneAsync(phone, ct);
-            return customer is not null
-                ? Ok(new List<CustomerDto> { customer })
-                : Ok(new List<CustomerDto>());
+            return Ok(customer is not null ? new List<CustomerDto> { customer } : new List<CustomerDto>());
         }
 
-        var customers = await _customerService.GetAllCustomersAsync(ct);
-        return Ok(customers);
+        return Ok(await _customerService.GetAllCustomersAsync(ct));
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<CustomerDto>> GetCustomerById(Guid id, CancellationToken ct)
+    [Authorize(Roles = "SuperAdmin,Admin,Customer")]
+    public async Task<ActionResult<CustomerDto>> GetCustomer(Guid id, CancellationToken ct)
     {
-        var customer = await _customerService.GetCustomerByIdAsync(id, ct);
+        if (User.GetRole() == "Customer" && User.GetCustomerId() != id)
+            return Forbid();
 
+        var customer = await _customerService.GetCustomerByIdAsync(id, ct);
         if (customer is null)
             return NotFound(new { message = $"Customer with ID {id} not found" });
 
         return Ok(customer);
     }
 
-    [HttpPost]
-    [Authorize(Roles = "SuperAdmin,Customer")]
-    public async Task<ActionResult<CustomerDto>> CreateCustomer(
-        [FromBody] CreateCustomerRequest request,
-        CancellationToken ct)
-    {
-        try
-        {
-            var customer = await _customerService.CreateCustomerAsync(request, ct);
-            return CreatedAtAction(nameof(GetCustomerById), new { id = customer.Id }, customer);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "SuperAdmin,Customer")]
     public async Task<ActionResult<CustomerDto>> UpdateCustomer(
         Guid id,
-        [FromBody] CreateCustomerRequest request,
+        [FromBody] UpdateCustomerRequest request,
         CancellationToken ct)
     {
+        if (User.GetRole() == "Customer" && User.GetCustomerId() != id)
+            return Forbid();
+
         try
         {
             var customer = await _customerService.UpdateCustomerAsync(id, request, ct);
-
             if (customer is null)
                 return NotFound(new { message = $"Customer with ID {id} not found" });
 
@@ -95,17 +77,5 @@ public class CustomersController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> DeleteCustomer(Guid id, CancellationToken ct)
-    {
-        var deleted = await _customerService.DeleteCustomerAsync(id, ct);
-
-        if (!deleted)
-            return NotFound(new { message = $"Customer with ID {id} not found" });
-
-        return NoContent();
     }
 }
