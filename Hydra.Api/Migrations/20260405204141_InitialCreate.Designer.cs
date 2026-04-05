@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hydra.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260405120312_InitialCreate")]
+    [Migration("20260405204141_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
