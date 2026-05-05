@@ -47,6 +47,7 @@ public class VenueRepository : IVenueRepository
             .AsNoTracking()
             .Include(v => v.VenueType)
             .Include(v => v.Rules)
+            .Include(v => v.User)
             .FirstOrDefaultAsync(v => v.Id == id, ct);
     }
 

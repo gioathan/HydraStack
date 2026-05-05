@@ -64,4 +64,12 @@ public class CustomerRepository : ICustomerRepository
         _context.Customers.Update(customer);
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task UpdatePushTokenAsync(Guid id, string? pushToken, CancellationToken ct = default)
+    {
+        var customer = await _context.Customers.FindAsync(new object[] { id }, ct);
+        if (customer is null) return;
+        customer.PushToken = pushToken;
+        await _context.SaveChangesAsync(ct);
+    }
 }

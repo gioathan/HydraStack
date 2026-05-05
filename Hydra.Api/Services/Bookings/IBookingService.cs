@@ -11,6 +11,6 @@ public interface IBookingService
     Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken ct);
     Task<BookingDto?> ConfirmBookingAsync(Guid id, BookingDecisionRequest request, CancellationToken ct);
     Task<BookingDto?> DeclineBookingAsync(Guid id, BookingDecisionRequest request, CancellationToken ct);
-    Task<BookingDto?> CancelBookingAsync(Guid id, CancelBookingRequest request, CancellationToken ct);
+    Task<BookingDto?> CancelBookingAsync(Guid id, CancelBookingRequest request, string cancelledBy, CancellationToken ct);
     Task<AvailabilityDto> CheckAvailabilityAsync(Guid venueId, DateOnly date, int partySize, CancellationToken ct);
 }

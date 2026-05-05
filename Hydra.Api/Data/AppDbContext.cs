@@ -102,6 +102,7 @@ namespace Hydra.Api.Data
                 b.Property(c => c.Email).HasMaxLength(256);
                 b.Property(c => c.Name).HasMaxLength(256);
                 b.Property(c => c.Phone).HasMaxLength(64);
+                b.Property(c => c.PushToken).HasMaxLength(256);
 
                 b.HasOne(c => c.User)
                     .WithMany()

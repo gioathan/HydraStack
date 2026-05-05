@@ -3,6 +3,7 @@ using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Mapping;
 using Hydra.Api.Repositories.Venues;
+using Hydra.Api.Services.GooglePlaces;
 
 namespace Hydra.Api.Services.Venues;
 
@@ -10,11 +11,16 @@ public class VenueService : IVenueService
 {
     private readonly IVenueRepository _venueRepo;
     private readonly ICache _cache;
+    private readonly IGooglePlacesService _googlePlacesService;
 
-    public VenueService(IVenueRepository venueRepo, ICache cache)
+    public VenueService(
+        IVenueRepository venueRepo,
+        ICache cache,
+        IGooglePlacesService googlePlacesService)
     {
         _venueRepo = venueRepo;
         _cache = cache;
+        _googlePlacesService = googlePlacesService;
     }
 
     public async Task<PagedResult<VenueDto>> GetAllVenuesAsync(int page, int pageSize, CancellationToken ct = default)
@@ -30,6 +36,7 @@ public class VenueService : IVenueService
             factory: async ct =>
             {
                 var (items, total) = await _venueRepo.GetAllAsync(skip, safeSize, ct);
+                // TODO: batch photo resolution or use cached URLs
                 return new PagedResult<VenueDto>(items.Select(v => v.ToDto()).ToList(), total, page, safeSize);
             },
             jitter: CacheKeys.Jitter.Venues,
@@ -48,7 +55,14 @@ public class VenueService : IVenueService
             factory: async ct =>
             {
                 var venue = await _venueRepo.GetByIdAsync(id, ct);
-                return venue?.ToDto();
+                if (venue is null)
+                    return null;
+
+                string? photoUrl = null;
+                if (!string.IsNullOrEmpty(venue.GooglePlaceId))
+                    photoUrl = await _googlePlacesService.GetPhotoUrlAsync(venue.GooglePlaceId, ct: ct);
+
+                return venue.ToDto(photoUrl);
             },
             cacheNull: true,
             jitter: CacheKeys.Jitter.Venues,

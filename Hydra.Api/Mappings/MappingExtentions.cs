@@ -9,15 +9,16 @@ namespace Hydra.Api.Mapping;
 
 public static class MappingExtensions
 {
-    public static VenueDto ToDto(this Venue venue) =>
+    public static VenueDto ToDto(this Venue venue, string? photoUrl = null) =>
         new(
             venue.Id,
             venue.Name,
             venue.Address,
             venue.Capacity,
             venue.UserId,
-            venue.VenueTypeId
-        );
+            venue.VenueTypeId,
+            venue.GooglePlaceId,
+            photoUrl);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
@@ -26,7 +27,8 @@ public static class MappingExtensions
             Address = request.Address,
             Capacity = request.Capacity,
             VenueTypeId = request.VenueTypeId,
-            UserId = request.UserId
+            UserId = request.UserId,
+            GooglePlaceId = request.GooglePlaceId
         };
 
     public static void UpdateFrom(this Venue venue, UpdateVenueRequest request)
@@ -35,6 +37,7 @@ public static class MappingExtensions
         venue.Address = request.Address;
         venue.Capacity = request.Capacity;
         venue.VenueTypeId = request.VenueTypeId;
+        venue.GooglePlaceId = request.GooglePlaceId;
     }
 
     public static CustomerDto ToDto(this Customer customer) =>
@@ -44,8 +47,8 @@ public static class MappingExtensions
             customer.Phone,
             customer.Locale,
             customer.CreatedAtUtc,
-            customer.Name
-        );
+            customer.Name,
+            customer.PushToken);
 
     public static Customer ToModel(this CreateCustomerRequest request) =>
         new()

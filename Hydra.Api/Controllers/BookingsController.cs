@@ -1,4 +1,4 @@
-﻿using Hydra.Api.Contracts.Bookings;
+using Hydra.Api.Contracts.Bookings;
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Services.Bookings;
 using Hydra.Api.Services.Venues;
@@ -175,18 +175,18 @@ public class BookingsController : ControllerBase
             var role = User.GetRole();
 
             if (role == "SuperAdmin")
-                return Ok(await _bookingService.CancelBookingAsync(id, request, ct));
+                return Ok(await _bookingService.CancelBookingAsync(id, request, "venue", ct));
 
             if (role == "Admin")
             {
                 var venue = await _venueService.GetVenueByIdAsync(booking.VenueId, ct);
                 if (venue?.UserId != User.GetUserId())
                     return Forbid();
-                return Ok(await _bookingService.CancelBookingAsync(id, request, ct));
+                return Ok(await _bookingService.CancelBookingAsync(id, request, "venue", ct));
             }
 
             if (role == "Customer" && booking.CustomerId == User.GetCustomerId())
-                return Ok(await _bookingService.CancelBookingAsync(id, request, ct));
+                return Ok(await _bookingService.CancelBookingAsync(id, request, "customer", ct));
 
             return Forbid();
         }

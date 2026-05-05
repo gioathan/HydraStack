@@ -12,6 +12,7 @@ services:
       ConnectionStrings__Postgres: "Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
       JwtSettings__Secret: "${JWT_SECRET}"
+      GooglePlaces__ApiKey: "${GOOGLE_PLACES_API_KEY}"
     depends_on:
       postgres:
         condition: service_healthy

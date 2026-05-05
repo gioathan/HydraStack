@@ -1,5 +1,6 @@
-﻿using Hydra.Api.Contracts.Common;
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Customers;
+using Hydra.Api.Repositories.Customers;
 using Hydra.Api.Services.Customers;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,12 @@ namespace Hydra.Api.Controllers;
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
+    private readonly ICustomerRepository _customerRepo;
 
-    public CustomersController(ICustomerService customerService)
+    public CustomersController(ICustomerService customerService, ICustomerRepository customerRepo)
     {
         _customerService = customerService;
+        _customerRepo = customerRepo;
     }
 
     [HttpGet]
@@ -90,5 +93,36 @@ public class CustomersController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPut("{id:guid}/push-token")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> RegisterPushToken(
+        Guid id,
+        [FromBody] RegisterPushTokenRequest request,
+        CancellationToken ct)
+    {
+        if (User.GetCustomerId() != id)
+            return Forbid();
+
+        if (string.IsNullOrWhiteSpace(request.PushToken))
+            return BadRequest(new { message = "Push token is required." });
+
+        if (!request.PushToken.StartsWith("ExponentPushToken[") || !request.PushToken.EndsWith("]"))
+            return BadRequest(new { message = "Invalid Expo push token format." });
+
+        await _customerRepo.UpdatePushTokenAsync(id, request.PushToken, ct);
+        return Ok(new { message = "Push token registered." });
+    }
+
+    [HttpDelete("{id:guid}/push-token")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> RemovePushToken(Guid id, CancellationToken ct)
+    {
+        if (User.GetCustomerId() != id)
+            return Forbid();
+
+        await _customerRepo.UpdatePushTokenAsync(id, null, ct);
+        return NoContent();
     }
 }

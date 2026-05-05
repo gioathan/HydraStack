@@ -18,6 +18,9 @@ using Hydra.Api.Services.VenueTypes;
 using Serilog;
 using Serilog.Events;
 using Hydra.Api.Auth;
+using Hydra.Api.Configuration;
+using Hydra.Api.Services.GooglePlaces;
+using Hydra.Api.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -80,6 +83,19 @@ try
     builder.Services.AddScoped<IBookingService, BookingService>();
     builder.Services.AddScoped<IVenueTypeRepository, VenueTypeRepository>();
     builder.Services.AddScoped<IVenueTypeService, VenueTypeService>();
+
+    builder.Services.Configure<GooglePlacesSettings>(builder.Configuration.GetSection("GooglePlaces"));
+    builder.Services.AddHttpClient("GooglePlaces");
+    builder.Services.AddScoped<IGooglePlacesService, GooglePlacesService>();
+
+    builder.Services.AddHttpClient("Expo", client =>
+    {
+        client.BaseAddress = new Uri("https://exp.host");
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
+    builder.Services.AddScoped<IExpoPushService, ExpoPushService>();
+    builder.Services.AddSingleton<INotificationQueue, NotificationQueue>();
+    builder.Services.AddHostedService<NotificationWorker>();
 
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
     builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();

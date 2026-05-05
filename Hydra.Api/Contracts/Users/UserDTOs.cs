@@ -33,8 +33,8 @@ public record RegisterVenueRequest(
     string Name,
     string Address,
     int Capacity,
-    Guid VenueTypeId
-);
+    Guid VenueTypeId,
+    string? GooglePlaceId = null);
 
 public record LoginRequest(string Email, string Password);
 

@@ -120,6 +120,10 @@ namespace Hydra.Api.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("PushToken")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 

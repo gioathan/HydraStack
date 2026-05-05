@@ -10,5 +10,6 @@ public class Customer
     public string? Phone { get; set; }
     public string Locale { get; set; } = "en";
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public string? PushToken { get; set; }
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

@@ -11,4 +11,5 @@ public interface ICustomerRepository
     Task<Customer?> GetByPhoneAsync(string phone, CancellationToken ct = default);
     Task<Customer> AddAsync(Customer customer, CancellationToken ct = default);
     Task UpdateAsync(Customer customer, CancellationToken ct = default);
+    Task UpdatePushTokenAsync(Guid id, string? pushToken, CancellationToken ct = default);
 }

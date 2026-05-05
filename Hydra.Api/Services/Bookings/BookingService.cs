@@ -7,6 +7,7 @@ using Hydra.Api.Models;
 using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Repositories.Venues;
 using Hydra.Api.Repositories.Customers;
+using Hydra.Api.Services.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hydra.Api.Services.Bookings;
@@ -18,19 +19,22 @@ public class BookingService : IBookingService
     private readonly ICustomerRepository _customerRepo;
     private readonly ICache _cache;
     private readonly AppDbContext _context;
+    private readonly INotificationQueue _notificationQueue;
 
     public BookingService(
         IBookingRepository bookingRepo,
         IVenueRepository venueRepo,
         ICustomerRepository customerRepo,
         ICache cache,
-        AppDbContext context)
+        AppDbContext context,
+        INotificationQueue notificationQueue)
     {
         _bookingRepo = bookingRepo;
         _venueRepo = venueRepo;
         _customerRepo = customerRepo;
         _cache = cache;
         _context = context;
+        _notificationQueue = notificationQueue;
     }
 
     public async Task<PagedResult<BookingDto>> GetAllBookingsAsync(
@@ -116,20 +120,14 @@ public class BookingService : IBookingService
 
         var venue = await _venueRepo.GetByIdWithRulesAsync(request.VenueId, ct);
         if (venue is null)
-        {
             throw new InvalidOperationException($"Venue with ID {request.VenueId} not found");
-        }
 
         var customer = await _customerRepo.GetByIdAsync(request.CustomerId, ct);
         if (customer is null)
-        {
             throw new InvalidOperationException($"Customer with ID {request.CustomerId} not found");
-        }
 
         if (request.PartySize > venue.Capacity)
-        {
             throw new InvalidOperationException($"Party size ({request.PartySize}) exceeds venue capacity ({venue.Capacity})");
-        }
 
         await using var transaction = await _context.Database.BeginTransactionAsync(
             System.Data.IsolationLevel.Serializable, ct);
@@ -157,6 +155,17 @@ public class BookingService : IBookingService
             await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
             await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
 
+            _notificationQueue.Enqueue(new BookingNotification(
+                Type: NotificationType.BookingReceived,
+                VenueAdminEmail: venue.User?.Email ?? "",
+                VenueName: venue.Name,
+                CustomerEmail: customer.Email ?? "",
+                CustomerName: customer.Name ?? "Guest",
+                CustomerPushToken: customer.PushToken,
+                BookingId: created.Id,
+                StartUtc: created.StartUtc,
+                PartySize: created.PartySize));
+
             return created.ToDto();
         }
         catch
@@ -178,6 +187,20 @@ public class BookingService : IBookingService
         await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
         await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
 
+        var venue = await _venueRepo.GetByIdWithRulesAsync(booking.VenueId, ct);
+        var customer = await _customerRepo.GetByIdAsync(booking.CustomerId, ct);
+
+        _notificationQueue.Enqueue(new BookingNotification(
+            Type: NotificationType.BookingConfirmed,
+            VenueAdminEmail: venue?.User?.Email ?? "",
+            VenueName: venue?.Name ?? "",
+            CustomerEmail: customer?.Email ?? "",
+            CustomerName: customer?.Name ?? "Guest",
+            CustomerPushToken: customer?.PushToken,
+            BookingId: booking.Id,
+            StartUtc: booking.StartUtc,
+            PartySize: booking.PartySize));
+
         return booking.ToDto();
     }
 
@@ -193,10 +216,24 @@ public class BookingService : IBookingService
         await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
         await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
 
+        var venue = await _venueRepo.GetByIdWithRulesAsync(booking.VenueId, ct);
+        var customer = await _customerRepo.GetByIdAsync(booking.CustomerId, ct);
+
+        _notificationQueue.Enqueue(new BookingNotification(
+            Type: NotificationType.BookingDeclined,
+            VenueAdminEmail: venue?.User?.Email ?? "",
+            VenueName: venue?.Name ?? "",
+            CustomerEmail: customer?.Email ?? "",
+            CustomerName: customer?.Name ?? "Guest",
+            CustomerPushToken: customer?.PushToken,
+            BookingId: booking.Id,
+            StartUtc: booking.StartUtc,
+            PartySize: booking.PartySize));
+
         return booking.ToDto();
     }
 
-    public async Task<BookingDto?> CancelBookingAsync(Guid id, CancelBookingRequest request, CancellationToken ct = default)
+    public async Task<BookingDto?> CancelBookingAsync(Guid id, CancelBookingRequest request, string cancelledBy, CancellationToken ct = default)
     {
         var booking = await _bookingRepo.GetByIdAsync(id, ct);
         if (booking is null)
@@ -207,6 +244,24 @@ public class BookingService : IBookingService
 
         await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
         await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
+
+        var venue = await _venueRepo.GetByIdWithRulesAsync(booking.VenueId, ct);
+        var customer = await _customerRepo.GetByIdAsync(booking.CustomerId, ct);
+
+        var notificationType = cancelledBy == "venue"
+            ? NotificationType.BookingCancelledByVenue
+            : NotificationType.BookingCancelledByCustomer;
+
+        _notificationQueue.Enqueue(new BookingNotification(
+            Type: notificationType,
+            VenueAdminEmail: venue?.User?.Email ?? "",
+            VenueName: venue?.Name ?? "",
+            CustomerEmail: customer?.Email ?? "",
+            CustomerName: customer?.Name ?? "Guest",
+            CustomerPushToken: customer?.PushToken,
+            BookingId: booking.Id,
+            StartUtc: booking.StartUtc,
+            PartySize: booking.PartySize));
 
         return booking.ToDto();
     }
@@ -297,9 +352,7 @@ public class BookingService : IBookingService
                 b.StartUtc < slotEnd && b.EndUtc > currentTime);
 
             if (!hasConflict)
-            {
                 availableSlots.Add(new TimeSlot(currentTime, slotEnd));
-            }
 
             currentTime = currentTime.AddMinutes(30);
         }

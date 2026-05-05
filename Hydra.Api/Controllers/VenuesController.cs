@@ -1,6 +1,7 @@
-﻿using Hydra.Api.Contracts.Common;
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Services.Venues;
+using Hydra.Api.Services.GooglePlaces;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
@@ -14,10 +15,12 @@ namespace Hydra.Api.Controllers;
 public class VenuesController : ControllerBase
 {
     private readonly IVenueService _venueService;
+    private readonly IGooglePlacesService _googlePlacesService;
 
-    public VenuesController(IVenueService venueService)
+    public VenuesController(IVenueService venueService, IGooglePlacesService googlePlacesService)
     {
         _venueService = venueService;
+        _googlePlacesService = googlePlacesService;
     }
 
     [HttpGet]
@@ -39,6 +42,26 @@ public class VenuesController : ControllerBase
             return NotFound(new { message = $"Venue with ID {id} not found" });
 
         return Ok(venue);
+    }
+
+    [HttpGet("{id:guid}/photo")]
+    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    public async Task<IActionResult> GetVenuePhoto(
+        Guid id,
+        [FromQuery] int maxWidth = 800,
+        CancellationToken ct = default)
+    {
+        var venue = await _venueService.GetVenueByIdAsync(id, ct);
+        if (venue is null)
+            return NotFound();
+        if (string.IsNullOrEmpty(venue.GooglePlaceId))
+            return NoContent();
+
+        var url = await _googlePlacesService.GetPhotoUrlAsync(venue.GooglePlaceId, maxWidth, ct);
+        if (url is null)
+            return NoContent();
+
+        return Redirect(url);
     }
 
     [HttpPut("{id:guid}")]

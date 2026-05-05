@@ -1,4 +1,4 @@
-﻿namespace Hydra.Api.Contracts.Customers;
+namespace Hydra.Api.Contracts.Customers;
 
 public record CreateCustomerRequest(
     string? Email,
@@ -19,4 +19,7 @@ public record CustomerDto(
     string? Phone,
     string Locale,
     DateTime CreatedAtUtc,
-    string? Name);
+    string? Name,
+    string? PushToken);
+
+public record RegisterPushTokenRequest(string PushToken);

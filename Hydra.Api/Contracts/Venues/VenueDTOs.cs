@@ -1,17 +1,19 @@
-﻿namespace Hydra.Api.Contracts.Venues;
+namespace Hydra.Api.Contracts.Venues;
 
 public record CreateVenueRequest(
     string Name,
     string Address,
     int Capacity,
     Guid VenueTypeId,
-    Guid UserId);
+    Guid UserId,
+    string? GooglePlaceId = null);
 
 public record UpdateVenueRequest(
     string Name,
     string Address,
     int Capacity,
-    Guid VenueTypeId);
+    Guid VenueTypeId,
+    string? GooglePlaceId = null);
 
 public record VenueDto(
     Guid Id,
@@ -19,4 +21,6 @@ public record VenueDto(
     string Address,
     int Capacity,
     Guid UserId,
-    Guid VenueTypeId);
+    Guid VenueTypeId,
+    string? GooglePlaceId,
+    string? PhotoUrl);
