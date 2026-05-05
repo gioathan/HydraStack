@@ -110,8 +110,8 @@ public class UsersController : ControllerBase
             var token = _jwt.GenerateToken(
                 result.User.Id,
                 result.User.Email,
-                UserRole.Customer,
-                customerId: result.Venue.Id);
+                UserRole.Admin,
+                venueId: result.Venue.Id);
             return Ok(new VenueAuthResponse(result.User, result.Venue, token));
         }
         catch (InvalidOperationException ex)

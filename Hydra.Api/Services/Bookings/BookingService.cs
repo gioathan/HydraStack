@@ -251,7 +251,12 @@ public class BookingService : IBookingService
                 var existingBookings = await _bookingRepo.GetBookingsByVenueAndDateAsync(venueId, date, ct);
 
                 var slotMinutes = venue.Rules?.SlotMinutes ?? 90;
-                var availableSlots = GenerateAvailableSlots(date, existingBookings, slotMinutes);
+                var availableSlots = GenerateAvailableSlots(
+                    date,
+                    existingBookings,
+                    slotMinutes,
+                    openHour: venue.Rules?.OpenHour ?? 9,
+                    closeHour: venue.Rules?.CloseHour ?? 22);
 
                 var isAvailable = availableSlots.Any();
                 var reason = isAvailable
@@ -274,11 +279,13 @@ public class BookingService : IBookingService
     private List<TimeSlot> GenerateAvailableSlots(
         DateOnly date,
         List<Booking> existingBookings,
-        int slotMinutes)
+        int slotMinutes,
+        int openHour = 9,
+        int closeHour = 22)
     {
         var availableSlots = new List<TimeSlot>();
-        var businessStart = date.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Utc);
-        var businessEnd = date.ToDateTime(new TimeOnly(22, 0), DateTimeKind.Utc);
+        var businessStart = date.ToDateTime(new TimeOnly(openHour, 0), DateTimeKind.Utc);
+        var businessEnd = date.ToDateTime(new TimeOnly(closeHour, 0), DateTimeKind.Utc);
 
         var currentTime = businessStart;
 

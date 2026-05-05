@@ -80,6 +80,14 @@ namespace Hydra.Api.Data
                 b.Property(r => r.SlotMinutes)
                     .IsRequired();
 
+                b.Property(r => r.OpenHour)
+                    .IsRequired()
+                    .HasDefaultValue(9);
+
+                b.Property(r => r.CloseHour)
+                    .IsRequired()
+                    .HasDefaultValue(22);
+
                 b.HasIndex(r => r.VenueId).IsUnique();
             });
 

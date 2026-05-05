@@ -70,6 +70,16 @@ namespace Hydra.Api.Migrations
                     b.Property<bool>("AutoConfirm")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("CloseHour")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(22);
+
+                    b.Property<int>("OpenHour")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(9);
+
                     b.Property<int>("SlotMinutes")
                         .HasColumnType("integer");
 

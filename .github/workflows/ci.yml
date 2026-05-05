@@ -20,10 +20,10 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore
-        run: dotnet restore HydraStack/Hydra.Api/Hydra.Api.csproj
+        run: dotnet restore Hydra.Api/Hydra.Api.csproj
 
       - name: Build
-        run: dotnet build HydraStack/Hydra.Api/Hydra.Api.csproj --no-restore --configuration Release
+        run: dotnet build Hydra.Api/Hydra.Api.csproj --no-restore --configuration Release
 
       # TODO: add test step once a test project exists
       # - name: Test

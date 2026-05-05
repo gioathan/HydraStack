@@ -18,12 +18,12 @@ public static class ClaimsPrincipalExtensions
     public static Guid? GetCustomerId(this ClaimsPrincipal user)
     {
         var val = user.FindFirst("customerId")?.Value;
-        return val is not null ? Guid.Parse(val) : null;
+        return Guid.TryParse(val, out var id) ? id : null;
     }
 
     public static Guid? GetVenueId(this ClaimsPrincipal user)
     {
         var val = user.FindFirst("venueId")?.Value;
-        return val is not null ? Guid.Parse(val) : null;
+        return Guid.TryParse(val, out var id) ? id : null;
     }
 }
