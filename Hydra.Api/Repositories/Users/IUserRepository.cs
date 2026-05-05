@@ -4,7 +4,7 @@ namespace Hydra.Api.Repositories.Users;
 
 public interface IUserRepository
 {
-    Task<List<User>> GetAllAsync(CancellationToken ct = default);
+    Task<(List<User> Items, int TotalCount)> GetAllAsync(int skip, int take, CancellationToken ct = default);
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<User> AddAsync(User user, CancellationToken ct = default);

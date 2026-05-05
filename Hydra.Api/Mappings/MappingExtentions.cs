@@ -104,8 +104,8 @@ public static class MappingExtensions
 
     public static void Cancel(this Booking booking)
     {
-        if (booking.Status != BookingStatus.Confirmed)
-            throw new InvalidOperationException($"Can only cancel confirmed bookings. Current status: {booking.Status}");
+        if (booking.Status != BookingStatus.Confirmed && booking.Status != BookingStatus.Pending)
+            throw new InvalidOperationException($"Cannot cancel a booking in {booking.Status} status.");
 
         booking.Status = BookingStatus.Cancelled;
         booking.UpdatedAtUtc = DateTime.UtcNow;

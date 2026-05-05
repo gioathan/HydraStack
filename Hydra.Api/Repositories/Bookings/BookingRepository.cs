@@ -13,11 +13,13 @@ public class BookingRepository : IBookingRepository
         _context = context;
     }
 
-    public async Task<List<Booking>> GetAllAsync(
-        Guid? venueId = null,
-        Guid? customerId = null,
-        string? status = null,
-        CancellationToken ct = default)
+    public async Task<(List<Booking> Items, int TotalCount)> GetAllAsync(
+        Guid? venueId,
+        Guid? customerId,
+        string? status,
+        int skip,
+        int take,
+        CancellationToken ct)
     {
         var query = _context.Bookings
             .AsNoTracking()
@@ -34,15 +36,19 @@ public class BookingRepository : IBookingRepository
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
             query = query.Where(b => b.Status == statusEnum);
 
-        return await query
-            .OrderByDescending(b => b.CreatedAtUtc)
-            .ToListAsync(ct);
+        query = query.OrderByDescending(b => b.CreatedAtUtc);
+
+        var total = await query.CountAsync(ct);
+        var items = await query.Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
     }
 
-    public async Task<List<Booking>> GetBookingsByAdminUserIdAsync(
+    public async Task<(List<Booking> Items, int TotalCount)> GetBookingsByAdminUserIdAsync(
         Guid adminUserId,
         Guid? venueId,
         string? status,
+        int skip,
+        int take,
         CancellationToken ct)
     {
         var query = _context.Bookings
@@ -57,9 +63,11 @@ public class BookingRepository : IBookingRepository
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
             query = query.Where(b => b.Status == statusEnum);
 
-        return await query
-            .OrderByDescending(b => b.CreatedAtUtc)
-            .ToListAsync(ct);
+        query = query.OrderByDescending(b => b.CreatedAtUtc);
+
+        var total = await query.CountAsync(ct);
+        var items = await query.Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
     }
 
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken ct = default)

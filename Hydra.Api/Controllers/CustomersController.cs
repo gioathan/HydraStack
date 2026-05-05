@@ -1,4 +1,5 @@
-﻿using Hydra.Api.Contracts.Customers;
+﻿using Hydra.Api.Contracts.Common;
+using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Services.Customers;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -21,24 +22,36 @@ public class CustomersController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<List<CustomerDto>>> GetCustomers(
+    public async Task<ActionResult<PagedResult<CustomerDto>>> GetCustomers(
         [FromQuery] string? email,
         [FromQuery] string? phone,
-        CancellationToken ct)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
     {
         if (!string.IsNullOrWhiteSpace(email))
         {
+            email = email.Trim();
+            if (email.Length > 256)
+                return BadRequest(new { message = "Email must not exceed 256 characters." });
+
             var customer = await _customerService.GetCustomerByEmailAsync(email, ct);
-            return Ok(customer is not null ? new List<CustomerDto> { customer } : new List<CustomerDto>());
+            var items = customer is not null ? new List<CustomerDto> { customer } : new List<CustomerDto>();
+            return Ok(new PagedResult<CustomerDto>(items, items.Count, 1, items.Count == 0 ? 1 : items.Count));
         }
 
         if (!string.IsNullOrWhiteSpace(phone))
         {
+            phone = phone.Trim();
+            if (phone.Length > 30)
+                return BadRequest(new { message = "Phone must not exceed 30 characters." });
+
             var customer = await _customerService.GetCustomerByPhoneAsync(phone, ct);
-            return Ok(customer is not null ? new List<CustomerDto> { customer } : new List<CustomerDto>());
+            var items = customer is not null ? new List<CustomerDto> { customer } : new List<CustomerDto>();
+            return Ok(new PagedResult<CustomerDto>(items, items.Count, 1, items.Count == 0 ? 1 : items.Count));
         }
 
-        return Ok(await _customerService.GetAllCustomersAsync(ct));
+        return Ok(await _customerService.GetAllCustomersAsync(page, pageSize, ct));
     }
 
     [HttpGet("{id:guid}")]

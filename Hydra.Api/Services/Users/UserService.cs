@@ -1,3 +1,4 @@
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Contracts.Users;
 using Hydra.Api.Mapping;
@@ -28,10 +29,12 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public async Task<List<UserDto>> GetAllUsersAsync(CancellationToken ct = default)
+    public async Task<PagedResult<UserDto>> GetAllUsersAsync(int page, int pageSize, CancellationToken ct = default)
     {
-        var users = await _userRepo.GetAllAsync(ct);
-        return users.Select(u => u.ToDto()).ToList();
+        var safeSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (Math.Max(1, page) - 1) * safeSize;
+        var (items, total) = await _userRepo.GetAllAsync(skip, safeSize, ct);
+        return new PagedResult<UserDto>(items.Select(u => u.ToDto()).ToList(), total, page, safeSize);
     }
 
     public async Task<UserDto?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
@@ -58,17 +61,22 @@ public class UserService : IUserService
 
     public async Task<bool> UpdateUserPasswordAsync(Guid id, UpdateUserRequest request, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Password))
-            throw new InvalidOperationException("Password is required");
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+            throw new InvalidOperationException("Current password is required");
 
-        if (request.Password.Length < 8)
-            throw new InvalidOperationException("Password must be at least 8 characters long");
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            throw new InvalidOperationException("New password is required");
+
+        ValidatePassword(request.NewPassword);
 
         var user = await _userRepo.GetByIdAsync(id, ct);
         if (user is null)
             return false;
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new InvalidOperationException("Current password is incorrect");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
         await _userRepo.UpdateAsync(user, ct);
         return true;
@@ -94,8 +102,7 @@ public class UserService : IUserService
         if (string.IsNullOrWhiteSpace(request.Password))
             throw new InvalidOperationException("Password is required");
 
-        if (request.Password.Length < 8)
-            throw new InvalidOperationException("Password must be at least 8 characters long");
+        ValidatePassword(request.Password);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required");
@@ -152,8 +159,7 @@ public class UserService : IUserService
         if (string.IsNullOrWhiteSpace(request.Password))
             throw new InvalidOperationException("Password is required");
 
-        if (request.Password.Length < 8)
-            throw new InvalidOperationException("Password must be at least 8 characters long");
+        ValidatePassword(request.Password);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required");
@@ -201,5 +207,20 @@ public class UserService : IUserService
             await transaction.RollbackAsync(ct);
             throw;
         }
+    }
+
+    private static void ValidatePassword(string password)
+    {
+        if (password.Length < 10)
+            throw new InvalidOperationException("Password must be at least 10 characters long.");
+
+        if (!password.Any(char.IsUpper))
+            throw new InvalidOperationException("Password must contain at least one uppercase letter.");
+
+        if (!password.Any(char.IsDigit))
+            throw new InvalidOperationException("Password must contain at least one digit.");
+
+        if (!password.Any(c => !char.IsLetterOrDigit(c)))
+            throw new InvalidOperationException("Password must contain at least one special character.");
     }
 }

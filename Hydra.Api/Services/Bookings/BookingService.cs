@@ -1,10 +1,13 @@
 using Hydra.Api.Caching;
 using Hydra.Api.Contracts.Bookings;
+using Hydra.Api.Contracts.Common;
+using Hydra.Api.Data;
 using Hydra.Api.Mapping;
 using Hydra.Api.Models;
 using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Repositories.Venues;
 using Hydra.Api.Repositories.Customers;
+using Microsoft.EntityFrameworkCore;
 
 namespace Hydra.Api.Services.Bookings;
 
@@ -14,49 +17,60 @@ public class BookingService : IBookingService
     private readonly IVenueRepository _venueRepo;
     private readonly ICustomerRepository _customerRepo;
     private readonly ICache _cache;
+    private readonly AppDbContext _context;
 
     public BookingService(
         IBookingRepository bookingRepo,
         IVenueRepository venueRepo,
         ICustomerRepository customerRepo,
-        ICache cache)
+        ICache cache,
+        AppDbContext context)
     {
         _bookingRepo = bookingRepo;
         _venueRepo = venueRepo;
         _customerRepo = customerRepo;
         _cache = cache;
+        _context = context;
     }
 
-    public async Task<List<BookingDto>> GetAllBookingsAsync(
-        Guid? venueId = null,
-        Guid? customerId = null,
-        string? status = null,
+    public async Task<PagedResult<BookingDto>> GetAllBookingsAsync(
+        Guid? venueId,
+        Guid? customerId,
+        string? status,
+        int page,
+        int pageSize,
         CancellationToken ct = default)
     {
+        var safeSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (Math.Max(1, page) - 1) * safeSize;
         var version = await _cache.GetTokenAsync(CacheKeys.BookingsToken, ct: ct);
-        var key = CacheKeys.BookingsList(venueId, customerId, status, version);
+        var key = CacheKeys.BookingsList(venueId, customerId, status, page, safeSize, version);
 
         return await _cache.GetOrSetAsync(
             key: key,
             ttl: CacheKeys.Ttl.BookingsList,
             factory: async ct =>
             {
-                var bookings = await _bookingRepo.GetAllAsync(venueId, customerId, status, ct);
-                return bookings.Select(b => b.ToDto()).ToList();
+                var (items, total) = await _bookingRepo.GetAllAsync(venueId, customerId, status, skip, safeSize, ct);
+                return new PagedResult<BookingDto>(items.Select(b => b.ToDto()).ToList(), total, page, safeSize);
             },
             jitter: CacheKeys.Jitter.Bookings,
             ct: ct
         );
     }
 
-    public async Task<List<BookingDto>> GetBookingsForAdminAsync(
+    public async Task<PagedResult<BookingDto>> GetBookingsForAdminAsync(
         Guid adminUserId,
         Guid? venueId,
         string? status,
+        int page,
+        int pageSize,
         CancellationToken ct)
     {
-        var bookings = await _bookingRepo.GetBookingsByAdminUserIdAsync(adminUserId, venueId, status, ct);
-        return bookings.Select(b => b.ToDto()).ToList();
+        var safeSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (Math.Max(1, page) - 1) * safeSize;
+        var (items, total) = await _bookingRepo.GetBookingsByAdminUserIdAsync(adminUserId, venueId, status, skip, safeSize, ct);
+        return new PagedResult<BookingDto>(items.Select(b => b.ToDto()).ToList(), total, page, safeSize);
     }
 
     public async Task<BookingDto?> GetBookingByIdAsync(Guid id, CancellationToken ct = default)
@@ -81,14 +95,24 @@ public class BookingService : IBookingService
     public async Task<BookingDto> CreateBookingAsync(CreateBookingRequest request, CancellationToken ct = default)
     {
         if (request.StartUtc >= request.EndUtc)
-        {
             throw new InvalidOperationException("Start time must be before end time");
-        }
+
+        var now = DateTime.UtcNow;
+        if (request.StartUtc < now)
+            throw new InvalidOperationException("Cannot create a booking in the past.");
+
+        if (request.StartUtc > now.AddMonths(6))
+            throw new InvalidOperationException("Bookings cannot be made more than 6 months in advance.");
+
+        var duration = request.EndUtc - request.StartUtc;
+        if (duration.TotalMinutes < 15)
+            throw new InvalidOperationException("Minimum booking duration is 15 minutes.");
+
+        if (duration.TotalHours > 12)
+            throw new InvalidOperationException("Maximum booking duration is 12 hours.");
 
         if (request.PartySize <= 0)
-        {
             throw new InvalidOperationException("Party size must be greater than 0");
-        }
 
         var venue = await _venueRepo.GetByIdWithRulesAsync(request.VenueId, ct);
         if (venue is null)
@@ -107,30 +131,39 @@ public class BookingService : IBookingService
             throw new InvalidOperationException($"Party size ({request.PartySize}) exceeds venue capacity ({venue.Capacity})");
         }
 
-        var conflictingBookings = await _bookingRepo.GetConflictingBookingsAsync(
-            request.VenueId,
-            request.StartUtc,
-            request.EndUtc,
-            ct);
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, ct);
 
-        if (conflictingBookings.Any())
+        try
         {
-            throw new InvalidOperationException("The requested time slot conflicts with an existing booking");
+            var conflictingBookings = await _bookingRepo.GetConflictingBookingsAsync(
+                request.VenueId,
+                request.StartUtc,
+                request.EndUtc,
+                ct);
+
+            if (conflictingBookings.Any())
+                throw new InvalidOperationException("The requested time slot conflicts with an existing booking");
+
+            var booking = request.ToModel();
+
+            if (venue.Rules?.AutoConfirm == true)
+                booking.Status = BookingStatus.Confirmed;
+
+            var created = await _bookingRepo.AddAsync(booking, ct);
+
+            await transaction.CommitAsync(ct);
+
+            await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
+            await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
+
+            return created.ToDto();
         }
-
-        var booking = request.ToModel();
-
-        if (venue.Rules?.AutoConfirm == true)
+        catch
         {
-            booking.Status = BookingStatus.Confirmed;
+            await transaction.RollbackAsync(ct);
+            throw;
         }
-
-        var created = await _bookingRepo.AddAsync(booking, ct);
-
-        await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
-        await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
-
-        return created.ToDto();
     }
 
     public async Task<BookingDto?> ConfirmBookingAsync(Guid id, BookingDecisionRequest request, CancellationToken ct = default)

@@ -1,4 +1,5 @@
-﻿using Hydra.Api.Contracts.Venues;
+﻿using Hydra.Api.Contracts.Common;
+using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Services.Venues;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -21,9 +22,12 @@ public class VenuesController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Customer,Admin,SuperAdmin")]
-    public async Task<ActionResult<List<VenueDto>>> GetAllVenues(CancellationToken ct)
+    public async Task<ActionResult<PagedResult<VenueDto>>> GetAllVenues(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
     {
-        return Ok(await _venueService.GetAllVenuesAsync(ct));
+        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, ct));
     }
 
     [HttpGet("{id:guid}")]

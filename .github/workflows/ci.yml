@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore HydraStack/Hydra.Api/Hydra.Api.csproj
+
+      - name: Build
+        run: dotnet build HydraStack/Hydra.Api/Hydra.Api.csproj --no-restore --configuration Release
+
+      # TODO: add test step once a test project exists
+      # - name: Test
+      #   run: dotnet test --no-build --configuration Release
+
+      - name: Docker Compose build
+        run: docker compose -f HydraStack/docker-compose.yml build

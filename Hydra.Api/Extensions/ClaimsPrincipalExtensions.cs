@@ -4,8 +4,13 @@ namespace Hydra.Api.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {
-    public static Guid GetUserId(this ClaimsPrincipal user) =>
-        Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    public static Guid GetUserId(this ClaimsPrincipal user)
+    {
+        var val = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (val is null || !Guid.TryParse(val, out var id))
+            throw new InvalidOperationException("User ID claim is missing or invalid.");
+        return id;
+    }
 
     public static string? GetRole(this ClaimsPrincipal user) =>
         user.FindFirst(ClaimTypes.Role)?.Value;

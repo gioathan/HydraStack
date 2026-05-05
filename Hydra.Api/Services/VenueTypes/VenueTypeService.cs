@@ -1,3 +1,4 @@
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.VenueTypes;
 using Hydra.Api.Mapping;
 using Hydra.Api.Repositories.VenueTypes;
@@ -13,10 +14,12 @@ public class VenueTypeService : IVenueTypeService
         _venueTypeRepo = venueTypeRepo;
     }
 
-    public async Task<List<VenueTypeDto>> GetAllVenueTypesAsync(CancellationToken ct = default)
+    public async Task<PagedResult<VenueTypeDto>> GetAllVenueTypesAsync(int page, int pageSize, CancellationToken ct = default)
     {
-        var venueTypes = await _venueTypeRepo.GetAllAsync(ct);
-        return venueTypes.Select(vt => vt.ToDto()).ToList();
+        var safeSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (Math.Max(1, page) - 1) * safeSize;
+        var (items, total) = await _venueTypeRepo.GetAllAsync(skip, safeSize, ct);
+        return new PagedResult<VenueTypeDto>(items.Select(vt => vt.ToDto()).ToList(), total, page, safeSize);
     }
 
     public async Task<VenueTypeDto?> GetVenueTypeByIdAsync(Guid id, CancellationToken ct = default)

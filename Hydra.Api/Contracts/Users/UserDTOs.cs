@@ -16,7 +16,8 @@ public record CreateUserRequest(
 );
 
 public record UpdateUserRequest(
-    string Password
+    string CurrentPassword,
+    string NewPassword
 );
 
 public record RegisterCustomerRequest(
@@ -34,6 +35,14 @@ public record RegisterVenueRequest(
     int Capacity,
     Guid VenueTypeId
 );
+
+public record LoginRequest(string Email, string Password);
+
+public record LoginResponse(
+    UserDto User,
+    string Token,
+    Guid? CustomerId = null,
+    Guid? VenueId = null);
 
 public record CustomerAuthResponse(
     UserDto User,

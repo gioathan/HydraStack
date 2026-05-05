@@ -85,7 +85,7 @@ public static class CacheKeys
     /// </summary>
     /// <param name="version">Version number from VenuesToken</param>
     /// <returns>Versioned cache key for venue list</returns>
-    public static string VenuesList(int version) => $"{Ns}:venues:list:v{version}";
+    public static string VenuesList(int page, int pageSize, int version) => $"{Ns}:venues:list:v{version}:p{page}:s{pageSize}";
 
     /// <summary>
     /// Generates cache key for a specific venue's details.
@@ -133,9 +133,9 @@ public static class CacheKeys
     /// <param name="customerId">Optional customer ID filter</param>
     /// <param name="version">Version number from BookingsToken</param>
     /// <returns>Versioned cache key for booking list with filters</returns>
-    public static string BookingsList(Guid? venueId, Guid? customerId, string? status, int version)
+    public static string BookingsList(Guid? venueId, Guid? customerId, string? status, int page, int pageSize, int version)
     {
-        var parts = new List<string> { Ns, "bookings", $"v{version}" };
+        var parts = new List<string> { Ns, "bookings", $"v{version}", $"p{page}", $"s{pageSize}" };
         if (venueId.HasValue) parts.Add($"venue:{venueId}");
         if (customerId.HasValue) parts.Add($"customer:{customerId}");
         if (!string.IsNullOrWhiteSpace(status)) parts.Add($"status:{status.ToLower()}");

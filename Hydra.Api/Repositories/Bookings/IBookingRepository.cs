@@ -4,8 +4,8 @@ namespace Hydra.Api.Repositories.Bookings;
 
 public interface IBookingRepository
 {
-    Task<List<Booking>> GetAllAsync(Guid? venueId, Guid? customerId, string? status, CancellationToken ct);
-    Task<List<Booking>> GetBookingsByAdminUserIdAsync(Guid adminUserId, Guid? venueId, string? status, CancellationToken ct);
+    Task<(List<Booking> Items, int TotalCount)> GetAllAsync(Guid? venueId, Guid? customerId, string? status, int skip, int take, CancellationToken ct);
+    Task<(List<Booking> Items, int TotalCount)> GetBookingsByAdminUserIdAsync(Guid adminUserId, Guid? venueId, string? status, int skip, int take, CancellationToken ct);
     Task<Booking?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<List<Booking>> GetConflictingBookingsAsync(Guid venueId, DateTime startUtc, DateTime endUtc, CancellationToken ct);
     Task<List<Booking>> GetBookingsByVenueAndDateAsync(Guid venueId, DateOnly date, CancellationToken ct);

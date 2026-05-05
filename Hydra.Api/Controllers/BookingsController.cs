@@ -1,10 +1,12 @@
 ﻿using Hydra.Api.Contracts.Bookings;
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Services.Bookings;
 using Hydra.Api.Services.Venues;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Hydra.Api.Controllers;
 
@@ -24,16 +26,18 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<BookingDto>>> GetBookings(
+    public async Task<ActionResult<PagedResult<BookingDto>>> GetBookings(
         [FromQuery] Guid? venueId,
         [FromQuery] Guid? customerId,
         [FromQuery] string? status,
-        CancellationToken ct)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
     {
         var role = User.GetRole();
 
         if (role == "SuperAdmin")
-            return Ok(await _bookingService.GetAllBookingsAsync(venueId, customerId, status, ct));
+            return Ok(await _bookingService.GetAllBookingsAsync(venueId, customerId, status, page, pageSize, ct));
 
         if (role == "Admin")
         {
@@ -44,11 +48,11 @@ public class BookingsController : ControllerBase
                     return Forbid();
             }
 
-            return Ok(await _bookingService.GetBookingsForAdminAsync(User.GetUserId(), venueId, status, ct));
+            return Ok(await _bookingService.GetBookingsForAdminAsync(User.GetUserId(), venueId, status, page, pageSize, ct));
         }
 
         if (role == "Customer")
-            return Ok(await _bookingService.GetAllBookingsAsync(venueId, User.GetCustomerId(), status, ct));
+            return Ok(await _bookingService.GetAllBookingsAsync(venueId, User.GetCustomerId(), status, page, pageSize, ct));
 
         return Forbid();
     }
@@ -81,6 +85,7 @@ public class BookingsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Customer")]
+    [EnableRateLimiting("bookings")]
     public async Task<ActionResult<BookingDto>> CreateBooking(
         [FromBody] CreateBookingRequest request,
         CancellationToken ct)

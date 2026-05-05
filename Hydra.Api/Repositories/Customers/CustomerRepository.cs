@@ -13,12 +13,15 @@ public class CustomerRepository : ICustomerRepository
         _context = context;
     }
 
-    public async Task<List<Customer>> GetAllAsync(CancellationToken ct = default)
+    public async Task<(List<Customer> Items, int TotalCount)> GetAllAsync(int skip, int take, CancellationToken ct = default)
     {
-        return await _context.Customers
+        var query = _context.Customers
             .AsNoTracking()
-            .OrderByDescending(c => c.CreatedAtUtc)
-            .ToListAsync(ct);
+            .OrderByDescending(c => c.CreatedAtUtc);
+
+        var total = await query.CountAsync(ct);
+        var items = await query.Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
     }
 
     public async Task<Customer?> GetByIdAsync(Guid id, CancellationToken ct = default)

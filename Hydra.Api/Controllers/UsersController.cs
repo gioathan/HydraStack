@@ -1,3 +1,4 @@
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Users;
 using Hydra.Api.Services.Users;
 using Hydra.Api.Extensions;
@@ -6,6 +7,7 @@ using Hydra.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Hydra.Api.Controllers;
 
@@ -25,9 +27,12 @@ public class UsersController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<List<UserDto>>> GetAllUsers(CancellationToken ct)
+    public async Task<ActionResult<PagedResult<UserDto>>> GetAllUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
     {
-        return Ok(await _userService.GetAllUsersAsync(ct));
+        return Ok(await _userService.GetAllUsersAsync(page, pageSize, ct));
     }
 
     [HttpGet("{id:guid}")]
@@ -43,6 +48,7 @@ public class UsersController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "SuperAdmin,Admin,Customer")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult> UpdateUser(Guid id, UpdateUserRequest request, CancellationToken ct)
     {
         if (User.GetUserId() != id)
@@ -70,6 +76,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("register/customer")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<CustomerAuthResponse>> CreateCustomer(
         [FromBody] RegisterCustomerRequest request,
         CancellationToken ct)
@@ -92,6 +99,7 @@ public class UsersController : ControllerBase
 
     [HttpPost("register/venue")]
     [Authorize(Roles = "SuperAdmin")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<VenueAuthResponse>> CreateVenue(
         [FromBody] RegisterVenueRequest request,
         CancellationToken ct)

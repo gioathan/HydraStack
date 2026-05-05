@@ -22,6 +22,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -51,9 +53,15 @@ try
 
     builder.Host.UseSerilog();
 
-    var pgCs = builder.Configuration.GetConnectionString("Postgres")
-                 ?? "Host=localhost;Port=5432;Database=hydra;Username=app;Password=app";
-    var redisCs = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+    var pgCs = builder.Configuration.GetConnectionString("Postgres");
+    if (string.IsNullOrWhiteSpace(pgCs))
+        throw new InvalidOperationException(
+            "ConnectionStrings:Postgres must be configured. Set it via environment variable or user secrets.");
+
+    var redisCs = builder.Configuration.GetConnectionString("Redis");
+    if (string.IsNullOrWhiteSpace(redisCs))
+        throw new InvalidOperationException(
+            "ConnectionStrings:Redis must be configured. Set it via environment variable or user secrets.");
 
     builder.Services.AddDbContext<AppDbContext>(opt =>
         opt.UseNpgsql(pgCs)
@@ -77,6 +85,10 @@ try
     builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
     var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+
+    if (string.IsNullOrWhiteSpace(jwtSettings?.Secret))
+        throw new InvalidOperationException(
+            "JwtSettings:Secret is not configured. Set it via environment variable JWTSETTINGS__SECRET or user secrets.");
 
     builder.Services.AddAuthentication(options =>
     {
@@ -108,7 +120,7 @@ try
                 "http://localhost:4200"
             )
             .AllowAnyMethod()
-            .AllowAnyHeader()
+            .WithHeaders("Content-Type", "Authorization")
             .AllowCredentials();
         });
     });
@@ -125,6 +137,33 @@ try
         options.GroupNameFormat = "'v'VVV";
         options.SubstituteApiVersionInUrl = true;
     });
+
+    builder.Services.AddRateLimiter(options =>
+    {
+        // Strict policy for registration and password changes: 5 requests per 15 min per IP
+        options.AddSlidingWindowLimiter("auth", opt =>
+        {
+            opt.PermitLimit = 5;
+            opt.Window = TimeSpan.FromMinutes(15);
+            opt.SegmentsPerWindow = 3;
+            opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            opt.QueueLimit = 0;
+        });
+
+        // Moderate policy for booking creation: 20 requests per minute per IP
+        options.AddSlidingWindowLimiter("bookings", opt =>
+        {
+            opt.PermitLimit = 20;
+            opt.Window = TimeSpan.FromMinutes(1);
+            opt.SegmentsPerWindow = 2;
+            opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            opt.QueueLimit = 0;
+        });
+
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    });
+
+    builder.Services.AddHealthChecks();
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
@@ -197,9 +236,11 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors();
+    app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHealthChecks("/health");
 
     Log.Information("Hydra API started successfully");
 

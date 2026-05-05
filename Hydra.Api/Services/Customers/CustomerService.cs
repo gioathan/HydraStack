@@ -1,3 +1,4 @@
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Mapping;
 using Hydra.Api.Repositories.Customers;
@@ -13,10 +14,12 @@ public class CustomerService : ICustomerService
         _customerRepo = customerRepo;
     }
 
-    public async Task<List<CustomerDto>> GetAllCustomersAsync(CancellationToken ct = default)
+    public async Task<PagedResult<CustomerDto>> GetAllCustomersAsync(int page, int pageSize, CancellationToken ct = default)
     {
-        var customers = await _customerRepo.GetAllAsync(ct);
-        return customers.Select(c => c.ToDto()).ToList();
+        var safeSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (Math.Max(1, page) - 1) * safeSize;
+        var (items, total) = await _customerRepo.GetAllAsync(skip, safeSize, ct);
+        return new PagedResult<CustomerDto>(items.Select(c => c.ToDto()).ToList(), total, page, safeSize);
     }
 
     public async Task<CustomerDto?> GetCustomerByIdAsync(Guid id, CancellationToken ct = default)
