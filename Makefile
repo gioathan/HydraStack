@@ -1,4 +1,4 @@
-.PHONY: run dev logs migrate nuke
+.PHONY: run dev logs migrate nuke seed
 
 run:
 	docker compose up -d
@@ -17,3 +17,6 @@ logs:
 
 migrate:
 	docker compose exec hydra.api dotnet ef database update
+
+seed:
+	docker compose exec hydra.api dotnet Hydra.Api.dll --seed

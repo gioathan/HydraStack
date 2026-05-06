@@ -25,6 +25,13 @@ public class GooglePlacesService : IGooglePlacesService
         int maxWidth = 800,
         CancellationToken ct = default)
     {
+        // Development: support picsum: prefix for fake photos — never used in production
+        if (googlePlaceId.StartsWith("picsum:", StringComparison.OrdinalIgnoreCase))
+        {
+            var seed = googlePlaceId["picsum:".Length..];
+            return $"https://picsum.photos/seed/{seed}/{maxWidth}/600";
+        }
+
         if (string.IsNullOrWhiteSpace(_settings.ApiKey))
         {
             _logger.LogWarning("GooglePlaces:ApiKey is not configured — skipping photo resolution");

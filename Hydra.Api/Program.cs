@@ -97,6 +97,8 @@ try
     builder.Services.AddSingleton<INotificationQueue, NotificationQueue>();
     builder.Services.AddHostedService<NotificationWorker>();
 
+    builder.Services.AddScoped<DatabaseSeeder>();
+
     builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
     builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
@@ -229,6 +231,23 @@ try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
+    }
+
+    // --seed flag: run seeder and exit (for staging/CI use)
+    if (args.Contains("--seed"))
+    {
+        using var seedScope = app.Services.CreateScope();
+        var seeder = seedScope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
+        return;
+    }
+
+    // Seed development data automatically on startup
+    if (app.Environment.IsDevelopment())
+    {
+        using var seedScope = app.Services.CreateScope();
+        var seeder = seedScope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
     }
 
     app.UseSerilogRequestLogging(options =>
