@@ -92,7 +92,7 @@ public class DatabaseSeeder
 
     // ── STEP 4 ──────────────────────────────────────────────────────────────
 
-    // For dev venues GooglePlaceId is set to "picsum:<seed>" so the backend
+    // For dev venues GooglePlaceIds use the "picsum:<seed>" prefix so the backend
     // returns https://picsum.photos/seed/<seed>/800/600 without hitting Google.
     // In production, real GooglePlaceId values never start with "picsum:".
 
@@ -106,7 +106,7 @@ public class DatabaseSeeder
                 Address:       "Miaouli 12, Hydra",
                 Capacity:      45,
                 VenueTypeName: "Restaurant",
-                GooglePlaceId: "picsum:sunset-terrace",
+                PhotoSeeds:    ["picsum:sunset-terrace", "picsum:sunset-terrace-2", "picsum:sunset-terrace-3"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 12, CloseHour: 23),
 
             new VenueSeed(
@@ -115,7 +115,7 @@ public class DatabaseSeeder
                 Address:       "Tombazi 3, Hydra",
                 Capacity:      30,
                 VenueTypeName: "Cafe",
-                GooglePlaceId: "picsum:harbor-view-cafe",
+                PhotoSeeds:    ["picsum:harbor-view-cafe", "picsum:harbor-view-cafe-2"],
                 SlotMinutes:   60,  AutoConfirm: true,  OpenHour: 8,  CloseHour: 20),
 
             new VenueSeed(
@@ -124,7 +124,7 @@ public class DatabaseSeeder
                 Address:       "Lignou 7, Hydra",
                 Capacity:      50,
                 VenueTypeName: "Bar",
-                GooglePlaceId: "picsum:the-blue-bar",
+                PhotoSeeds:    ["picsum:the-blue-bar", "picsum:the-blue-bar-2", "picsum:the-blue-bar-3"],
                 SlotMinutes:   120, AutoConfirm: false, OpenHour: 18, CloseHour: 2),
 
             new VenueSeed(
@@ -133,7 +133,7 @@ public class DatabaseSeeder
                 Address:       "Mandraki Beach, Hydra",
                 Capacity:      60,
                 VenueTypeName: "Beach Bar",
-                GooglePlaceId: "picsum:crystal-beach-bar",
+                PhotoSeeds:    ["picsum:crystal-beach-bar", "picsum:crystal-beach-bar-2"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 10, CloseHour: 20),
 
             new VenueSeed(
@@ -142,7 +142,7 @@ public class DatabaseSeeder
                 Address:       "Main Port, Hydra",
                 Capacity:      12,
                 VenueTypeName: "Boat Trip",
-                GooglePlaceId: "picsum:poseidon-boat-trips",
+                PhotoSeeds:    ["picsum:poseidon-boat-trips", "picsum:poseidon-boat-trips-2"],
                 SlotMinutes:   180, AutoConfirm: false, OpenHour: 9,  CloseHour: 18),
 
             new VenueSeed(
@@ -151,7 +151,7 @@ public class DatabaseSeeder
                 Address:       "Votsi 15, Hydra",
                 Capacity:      35,
                 VenueTypeName: "Restaurant",
-                GooglePlaceId: "picsum:acropolis-restaurant",
+                PhotoSeeds:    ["picsum:acropolis-restaurant", "picsum:acropolis-restaurant-2", "picsum:acropolis-restaurant-3"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 13, CloseHour: 23),
 
             new VenueSeed(
@@ -160,7 +160,7 @@ public class DatabaseSeeder
                 Address:       "Spilia Beach, Hydra",
                 Capacity:      40,
                 VenueTypeName: "Bar",
-                GooglePlaceId: "picsum:aegean-breeze-bar",
+                PhotoSeeds:    ["picsum:aegean-breeze-bar", "picsum:aegean-breeze-bar-2"],
                 SlotMinutes:   60,  AutoConfirm: true,  OpenHour: 17, CloseHour: 1),
 
             new VenueSeed(
@@ -169,7 +169,7 @@ public class DatabaseSeeder
                 Address:       "Tombazi 22, Hydra",
                 Capacity:      20,
                 VenueTypeName: "Cafe",
-                GooglePlaceId: "picsum:hydra-coffee-house",
+                PhotoSeeds:    ["picsum:hydra-coffee-house", "picsum:hydra-coffee-house-2"],
                 SlotMinutes:   45,  AutoConfirm: true,  OpenHour: 7,  CloseHour: 19)
         };
 
@@ -205,10 +205,20 @@ public class DatabaseSeeder
                     VenueTypeId = venueType.Id,
                     Name = seed.VenueName,
                     Address = seed.Address,
-                    Capacity = seed.Capacity,
-                    GooglePlaceId = seed.GooglePlaceId
+                    Capacity = seed.Capacity
                 };
                 _context.Venues.Add(venue);
+                await _context.SaveChangesAsync(ct);
+
+                for (var i = 0; i < seed.PhotoSeeds.Length; i++)
+                {
+                    _context.VenuePhotos.Add(new VenuePhoto
+                    {
+                        VenueId = venue.Id,
+                        GooglePlaceId = seed.PhotoSeeds[i],
+                        DisplayOrder = i
+                    });
+                }
                 await _context.SaveChangesAsync(ct);
 
                 _context.BookingRules.Add(new BookingRules
@@ -236,7 +246,7 @@ public class DatabaseSeeder
         string Address,
         int Capacity,
         string VenueTypeName,
-        string? GooglePlaceId,
+        string[] PhotoSeeds,
         int SlotMinutes,
         bool AutoConfirm,
         int OpenHour,

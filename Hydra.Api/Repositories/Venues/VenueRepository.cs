@@ -13,11 +13,13 @@ public class VenueRepository : IVenueRepository
         _context = context;
     }
 
-    public async Task<(List<Venue> Items, int TotalCount)> GetAllAsync(int skip, int take, CancellationToken ct = default)
+    public async Task<(List<Venue> Items, int TotalCount)> GetAllAsync(int skip, int take, Guid? venueTypeId = null, CancellationToken ct = default)
     {
         var query = _context.Venues
             .AsNoTracking()
             .Include(v => v.VenueType)
+            .Include(v => v.Photos.OrderBy(p => p.DisplayOrder))
+            .Where(v => venueTypeId == null || v.VenueTypeId == venueTypeId)
             .OrderBy(v => v.Name);
 
         var total = await query.CountAsync(ct);
@@ -30,6 +32,7 @@ public class VenueRepository : IVenueRepository
         return await _context.Venues
             .AsNoTracking()
             .Include(v => v.VenueType)
+            .Include(v => v.Photos.OrderBy(p => p.DisplayOrder))
             .FirstOrDefaultAsync(v => v.Id == id, ct);
     }
 

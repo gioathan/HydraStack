@@ -303,20 +303,15 @@ public class BookingService : IBookingService
                         new List<TimeSlot>());
                 }
 
-                var existingBookings = await _bookingRepo.GetBookingsByVenueAndDateAsync(venueId, date, ct);
-
                 var slotMinutes = venue.Rules?.SlotMinutes ?? 90;
-                var availableSlots = GenerateAvailableSlots(
-                    date,
-                    existingBookings,
-                    slotMinutes,
-                    openHour: venue.Rules?.OpenHour ?? 9,
-                    closeHour: venue.Rules?.CloseHour ?? 22);
+                var openHour = venue.Rules?.OpenHour ?? 9;
+                var closeHour = venue.Rules?.CloseHour ?? 22;
+                var availableSlots = GenerateAvailableSlots(date, slotMinutes, openHour, closeHour);
 
                 var isAvailable = availableSlots.Any();
                 var reason = isAvailable
                     ? $"{availableSlots.Count} slot(s) available"
-                    : "No available slots for this date";
+                    : $"No slots fit within operating hours ({openHour:D2}:00–{closeHour:D2}:00) with a {slotMinutes}-minute duration";
 
                 return new AvailabilityDto(
                     venueId,
@@ -333,7 +328,6 @@ public class BookingService : IBookingService
 
     private List<TimeSlot> GenerateAvailableSlots(
         DateOnly date,
-        List<Booking> existingBookings,
         int slotMinutes,
         int openHour = 9,
         int closeHour = 22)
@@ -346,14 +340,7 @@ public class BookingService : IBookingService
 
         while (currentTime.AddMinutes(slotMinutes) <= businessEnd)
         {
-            var slotEnd = currentTime.AddMinutes(slotMinutes);
-
-            var hasConflict = existingBookings.Any(b =>
-                b.StartUtc < slotEnd && b.EndUtc > currentTime);
-
-            if (!hasConflict)
-                availableSlots.Add(new TimeSlot(currentTime, slotEnd));
-
+            availableSlots.Add(new TimeSlot(currentTime, currentTime.AddMinutes(slotMinutes)));
             currentTime = currentTime.AddMinutes(30);
         }
 

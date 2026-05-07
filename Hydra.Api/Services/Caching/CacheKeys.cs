@@ -85,7 +85,7 @@ public static class CacheKeys
     /// </summary>
     /// <param name="version">Version number from VenuesToken</param>
     /// <returns>Versioned cache key for venue list</returns>
-    public static string VenuesList(int page, int pageSize, int version) => $"{Ns}:venues:list:v{version}:p{page}:s{pageSize}";
+    public static string VenuesList(int page, int pageSize, Guid? venueTypeId, int version) => $"{Ns}:venues:list:v{version}:p{page}:s{pageSize}:t{venueTypeId}";
 
     /// <summary>
     /// Generates cache key for a specific venue's details.

@@ -1,7 +1,6 @@
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Services.Venues;
-using Hydra.Api.Services.GooglePlaces;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
@@ -15,12 +14,10 @@ namespace Hydra.Api.Controllers;
 public class VenuesController : ControllerBase
 {
     private readonly IVenueService _venueService;
-    private readonly IGooglePlacesService _googlePlacesService;
 
-    public VenuesController(IVenueService venueService, IGooglePlacesService googlePlacesService)
+    public VenuesController(IVenueService venueService)
     {
         _venueService = venueService;
-        _googlePlacesService = googlePlacesService;
     }
 
     [HttpGet]
@@ -28,9 +25,10 @@ public class VenuesController : ControllerBase
     public async Task<ActionResult<PagedResult<VenueDto>>> GetAllVenues(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
+        [FromQuery] Guid? venueTypeId = null,
         CancellationToken ct = default)
     {
-        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, ct));
+        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, venueTypeId, ct));
     }
 
     [HttpGet("{id:guid}")]
@@ -42,26 +40,6 @@ public class VenuesController : ControllerBase
             return NotFound(new { message = $"Venue with ID {id} not found" });
 
         return Ok(venue);
-    }
-
-    [HttpGet("{id:guid}/photo")]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
-    public async Task<IActionResult> GetVenuePhoto(
-        Guid id,
-        [FromQuery] int maxWidth = 800,
-        CancellationToken ct = default)
-    {
-        var venue = await _venueService.GetVenueByIdAsync(id, ct);
-        if (venue is null)
-            return NotFound();
-        if (string.IsNullOrEmpty(venue.GooglePlaceId))
-            return NoContent();
-
-        var url = await _googlePlacesService.GetPhotoUrlAsync(venue.GooglePlaceId, maxWidth, ct);
-        if (url is null)
-            return NoContent();
-
-        return Redirect(url);
     }
 
     [HttpPut("{id:guid}")]
@@ -86,5 +64,71 @@ public class VenuesController : ControllerBase
             return NotFound(new { message = $"Venue with ID {id} not found" });
 
         return Ok(venue);
+    }
+
+    [HttpPost("{id:guid}/photos")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<VenuePhotoDto>> AddPhoto(
+        Guid id,
+        [FromBody] AddVenuePhotoRequest request,
+        CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var venue = await _venueService.GetVenueByIdAsync(id, ct);
+            if (venue is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (venue.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var photo = await _venueService.AddPhotoAsync(id, request, ct);
+        if (photo is null)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return CreatedAtAction(nameof(GetVenueById), new { id }, photo);
+    }
+
+    [HttpDelete("{id:guid}/photos/{photoId:guid}")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> DeletePhoto(Guid id, Guid photoId, CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var venue = await _venueService.GetVenueByIdAsync(id, ct);
+            if (venue is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (venue.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var deleted = await _venueService.DeletePhotoAsync(id, photoId, ct);
+        if (!deleted)
+            return NotFound(new { message = $"Photo with ID {photoId} not found on venue {id}" });
+
+        return NoContent();
+    }
+
+    [HttpPut("{id:guid}/photos/order")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<IReadOnlyList<VenuePhotoDto>>> ReorderPhotos(
+        Guid id,
+        [FromBody] ReorderVenuePhotosRequest request,
+        CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var venue = await _venueService.GetVenueByIdAsync(id, ct);
+            if (venue is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (venue.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var photos = await _venueService.ReorderPhotosAsync(id, request, ct);
+        if (photos is null)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return Ok(photos);
     }
 }

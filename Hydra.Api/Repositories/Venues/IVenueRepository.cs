@@ -4,7 +4,7 @@ namespace Hydra.Api.Repositories.Venues;
 
 public interface IVenueRepository
 {
-    Task<(List<Venue> Items, int TotalCount)> GetAllAsync(int skip, int take, CancellationToken ct = default);
+    Task<(List<Venue> Items, int TotalCount)> GetAllAsync(int skip, int take, Guid? venueTypeId = null, CancellationToken ct = default);
     Task<Venue?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Venue?> GetByUserIdAsync(Guid id, CancellationToken ct = default);
     Task<Venue?> GetByIdWithRulesAsync(Guid id, CancellationToken ct = default);

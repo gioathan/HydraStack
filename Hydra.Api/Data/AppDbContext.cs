@@ -13,6 +13,7 @@ namespace Hydra.Api.Data
         public virtual DbSet<BookingRules> BookingRules => Set<BookingRules>();
         public virtual DbSet<Customer> Customers => Set<Customer>();
         public virtual DbSet<Booking> Bookings => Set<Booking>();
+        public virtual DbSet<VenuePhoto> VenuePhotos => Set<VenuePhoto>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,10 +68,26 @@ namespace Hydra.Api.Data
                     .HasForeignKey<BookingRules>(r => r.VenueId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                b.HasMany(v => v.Photos)
+                    .WithOne(p => p.Venue)
+                    .HasForeignKey(p => p.VenueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 b.HasMany(v => v.Bookings)
                     .WithOne(bk => bk.Venue)
                     .HasForeignKey(bk => bk.VenueId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<VenuePhoto>(b =>
+            {
+                b.HasKey(p => p.Id);
+
+                b.Property(p => p.GooglePlaceId)
+                    .IsRequired()
+                    .HasMaxLength(512);
+
+                b.HasIndex(p => new { p.VenueId, p.DisplayOrder });
             });
 
             modelBuilder.Entity<BookingRules>(b =>

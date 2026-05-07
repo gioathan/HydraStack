@@ -12,8 +12,8 @@ public class Venue
     public int Capacity { get; set; } = 40;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
-    public string? GooglePlaceId { get; set; }
 
     public BookingRules? Rules { get; set; }
+    public ICollection<VenuePhoto> Photos { get; set; } = new List<VenuePhoto>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

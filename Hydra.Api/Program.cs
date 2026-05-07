@@ -13,6 +13,7 @@ using Hydra.Api.Repositories.Users;
 using Hydra.Api.Services.Users;
 using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Services.Bookings;
+using Hydra.Api.Repositories.VenuePhotos;
 using Hydra.Api.Repositories.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
 using Serilog;
@@ -74,6 +75,7 @@ try
     builder.Services.AddSingleton<ICache, RedisCache>();
 
     builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+    builder.Services.AddScoped<IVenuePhotoRepository, VenuePhotoRepository>();
     builder.Services.AddScoped<IVenueService, VenueService>();
     builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
     builder.Services.AddScoped<ICustomerService, CustomerService>();

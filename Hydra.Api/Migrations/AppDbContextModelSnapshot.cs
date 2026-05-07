@@ -174,9 +174,6 @@ namespace Hydra.Api.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
-                    b.Property<string>("GooglePlaceId")
-                        .HasColumnType("text");
-
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
 
@@ -201,6 +198,30 @@ namespace Hydra.Api.Migrations
                     b.HasIndex("VenueTypeId");
 
                     b.ToTable("Venues");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenuePhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GooglePlaceId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId", "DisplayOrder");
+
+                    b.ToTable("VenuePhotos");
                 });
 
             modelBuilder.Entity("Hydra.Api.Models.VenueType", b =>
@@ -285,6 +306,17 @@ namespace Hydra.Api.Migrations
                     b.Navigation("VenueType");
                 });
 
+            modelBuilder.Entity("Hydra.Api.Models.VenuePhoto", b =>
+                {
+                    b.HasOne("Hydra.Api.Models.Venue", "Venue")
+                        .WithMany("Photos")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("Hydra.Api.Models.Customer", b =>
                 {
                     b.Navigation("Bookings");
@@ -293,6 +325,8 @@ namespace Hydra.Api.Migrations
             modelBuilder.Entity("Hydra.Api.Models.Venue", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("Photos");
 
                     b.Navigation("Rules");
                 });
