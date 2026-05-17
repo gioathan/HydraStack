@@ -28,20 +28,35 @@ public class VenueService : IVenueService
         _googlePlacesService = googlePlacesService;
     }
 
-    public async Task<PagedResult<VenueDto>> GetAllVenuesAsync(int page, int pageSize, Guid? venueTypeId = null, CancellationToken ct = default)
+    public async Task<PagedResult<VenueDto>> GetAllVenuesAsync(int page, int pageSize, Guid? venueTypeId = null, string? name = null, CancellationToken ct = default)
     {
         var safeSize = Math.Clamp(pageSize, 1, 100);
         var skip = (Math.Max(1, page) - 1) * safeSize;
         var version = await _cache.GetTokenAsync(CacheKeys.VenuesToken, ct: ct);
-        var key = CacheKeys.VenuesList(page, safeSize, venueTypeId, version);
+        var key = CacheKeys.VenuesList(page, safeSize, venueTypeId, version, name);
 
         return await _cache.GetOrSetAsync(
             key: key,
             ttl: CacheKeys.Ttl.VenuesList,
             factory: async ct =>
             {
-                var (items, total) = await _venueRepo.GetAllAsync(skip, safeSize, venueTypeId, ct);
-                return new PagedResult<VenueDto>(items.Select(v => v.ToDto()).ToList(), total, page, safeSize);
+                var (items, total) = await _venueRepo.GetAllAsync(skip, safeSize, venueTypeId, name, ct);
+
+                var dtos = await Task.WhenAll(items.Select(async v =>
+                {
+                    var cover = v.Photos.MinBy(p => p.DisplayOrder);
+                    if (cover is null)
+                        return v.ToDto();
+
+                    var url = await _googlePlacesService.GetPhotoUrlAsync(cover.GooglePlaceId, ct: ct);
+                    var photos = v.Photos
+                        .OrderBy(p => p.DisplayOrder)
+                        .Select(p => p.Id == cover.Id ? p.ToDto(url) : p.ToDto())
+                        .ToList();
+                    return v.ToDto(photos);
+                }));
+
+                return new PagedResult<VenueDto>(dtos.ToList(), total, page, safeSize);
             },
             jitter: CacheKeys.Jitter.Venues,
             ct: ct

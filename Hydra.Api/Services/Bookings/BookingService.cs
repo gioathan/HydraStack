@@ -334,7 +334,8 @@ public class BookingService : IBookingService
     {
         var availableSlots = new List<TimeSlot>();
         var businessStart = date.ToDateTime(new TimeOnly(openHour, 0), DateTimeKind.Utc);
-        var businessEnd = date.ToDateTime(new TimeOnly(closeHour, 0), DateTimeKind.Utc);
+        var endDate = closeHour < openHour ? date.AddDays(1) : date;
+        var businessEnd = endDate.ToDateTime(new TimeOnly(closeHour, 0), DateTimeKind.Utc);
 
         var currentTime = businessStart;
 

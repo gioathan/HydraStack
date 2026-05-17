@@ -238,10 +238,10 @@ try
     // --seed flag: run seeder and exit (for staging/CI use)
     if (args.Contains("--seed"))
     {
-        using var seedScope = app.Services.CreateScope();
-        var seeder = seedScope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-        await seeder.SeedAsync();
-        return;
+        // using var seedScope = app.Services.CreateScope();
+        // var seeder = seedScope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        // await seeder.SeedAsync();
+        // return;
     }
 
     // Seed development data automatically on startup

@@ -26,9 +26,10 @@ public class VenuesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] Guid? venueTypeId = null,
+        [FromQuery] string? name = null,
         CancellationToken ct = default)
     {
-        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, venueTypeId, ct));
+        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, venueTypeId, name, ct));
     }
 
     [HttpGet("{id:guid}")]
