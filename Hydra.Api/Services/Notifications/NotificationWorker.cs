@@ -1,3 +1,4 @@
+using Hydra.Api.Services.Email;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

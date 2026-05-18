@@ -3,6 +3,7 @@ using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Mapping;
 using Hydra.Api.Models;
+using Hydra.Api.Repositories.Ratings;
 using Hydra.Api.Repositories.VenuePhotos;
 using Hydra.Api.Repositories.Venues;
 using Hydra.Api.Services.GooglePlaces;
@@ -13,17 +14,20 @@ public class VenueService : IVenueService
 {
     private readonly IVenueRepository _venueRepo;
     private readonly IVenuePhotoRepository _photoRepo;
+    private readonly IRatingRepository _ratingRepo;
     private readonly ICache _cache;
     private readonly IGooglePlacesService _googlePlacesService;
 
     public VenueService(
         IVenueRepository venueRepo,
         IVenuePhotoRepository photoRepo,
+        IRatingRepository ratingRepo,
         ICache cache,
         IGooglePlacesService googlePlacesService)
     {
         _venueRepo = venueRepo;
         _photoRepo = photoRepo;
+        _ratingRepo = ratingRepo;
         _cache = cache;
         _googlePlacesService = googlePlacesService;
     }
@@ -42,18 +46,23 @@ public class VenueService : IVenueService
             {
                 var (items, total) = await _venueRepo.GetAllAsync(skip, safeSize, venueTypeId, name, ct);
 
+                var venueIds = items.Select(v => v.Id);
+                var ratingAggregates = await _ratingRepo.GetAggregatesAsync(venueIds, ct);
+
                 var dtos = await Task.WhenAll(items.Select(async v =>
                 {
+                    ratingAggregates.TryGetValue(v.Id, out var agg);
+
                     var cover = v.Photos.MinBy(p => p.DisplayOrder);
                     if (cover is null)
-                        return v.ToDto();
+                        return v.ToDto(averageRating: agg.Average, ratingCount: agg.Count);
 
                     var url = await _googlePlacesService.GetPhotoUrlAsync(cover.GooglePlaceId, ct: ct);
                     var photos = v.Photos
                         .OrderBy(p => p.DisplayOrder)
                         .Select(p => p.Id == cover.Id ? p.ToDto(url) : p.ToDto())
                         .ToList();
-                    return v.ToDto(photos);
+                    return v.ToDto(photos, agg.Average, agg.Count);
                 }));
 
                 return new PagedResult<VenueDto>(dtos.ToList(), total, page, safeSize);
@@ -78,7 +87,8 @@ public class VenueService : IVenueService
                     return null;
 
                 var resolvedPhotos = await ResolvePhotoUrlsAsync(venue.Photos, ct);
-                return venue.ToDto(resolvedPhotos);
+                var (avg, count) = await _ratingRepo.GetAggregateAsync(id, ct);
+                return venue.ToDto(resolvedPhotos, avg, count);
             },
             cacheNull: true,
             jitter: CacheKeys.Jitter.Venues,
@@ -167,6 +177,32 @@ public class VenueService : IVenueService
             .OrderBy(p => p.DisplayOrder)
             .Select(p => p.ToDto())
             .ToList();
+    }
+
+    public async Task<BookingRulesDto?> GetBookingRulesAsync(Guid venueId, CancellationToken ct = default)
+    {
+        var rules = await _venueRepo.GetRulesByVenueIdAsync(venueId, ct);
+        if (rules is null)
+            return null;
+
+        return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
+    }
+
+    public async Task<BookingRulesDto?> UpdateBookingRulesAsync(Guid venueId, UpdateBookingRulesRequest request, CancellationToken ct = default)
+    {
+        var rules = await _venueRepo.GetRulesByVenueIdAsync(venueId, ct);
+        if (rules is null)
+            return null;
+
+        rules.AutoConfirm = request.AutoConfirm;
+        rules.SlotMinutes = request.SlotMinutes;
+        rules.OpenHour = request.OpenHour;
+        rules.CloseHour = request.CloseHour;
+
+        await _venueRepo.UpdateRulesAsync(rules, ct);
+        await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
+
+        return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
     }
 
     private async Task<IReadOnlyList<VenuePhotoDto>> ResolvePhotoUrlsAsync(

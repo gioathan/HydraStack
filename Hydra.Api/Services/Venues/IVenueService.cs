@@ -12,4 +12,6 @@ public interface IVenueService
     Task<VenuePhotoDto?> AddPhotoAsync(Guid venueId, AddVenuePhotoRequest request, CancellationToken ct = default);
     Task<bool> DeletePhotoAsync(Guid venueId, Guid photoId, CancellationToken ct = default);
     Task<IReadOnlyList<VenuePhotoDto>?> ReorderPhotosAsync(Guid venueId, ReorderVenuePhotosRequest request, CancellationToken ct = default);
+    Task<BookingRulesDto?> GetBookingRulesAsync(Guid venueId, CancellationToken ct = default);
+    Task<BookingRulesDto?> UpdateBookingRulesAsync(Guid venueId, UpdateBookingRulesRequest request, CancellationToken ct = default);
 }

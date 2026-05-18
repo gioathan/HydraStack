@@ -16,12 +16,18 @@ using Hydra.Api.Services.Bookings;
 using Hydra.Api.Repositories.VenuePhotos;
 using Hydra.Api.Repositories.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
+using Hydra.Api.Repositories.Ratings;
+using Hydra.Api.Services.Ratings;
 using Serilog;
 using Serilog.Events;
 using Hydra.Api.Auth;
 using Hydra.Api.Configuration;
 using Hydra.Api.Services.GooglePlaces;
 using Hydra.Api.Services.Notifications;
+using Hydra.Api.Services.Email;
+using Hydra.Api.Services.Auth;
+using Resend;
+using Log = Serilog.Log;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -85,6 +91,8 @@ try
     builder.Services.AddScoped<IBookingService, BookingService>();
     builder.Services.AddScoped<IVenueTypeRepository, VenueTypeRepository>();
     builder.Services.AddScoped<IVenueTypeService, VenueTypeService>();
+    builder.Services.AddScoped<IRatingRepository, RatingRepository>();
+    builder.Services.AddScoped<IRatingService, RatingService>();
 
     builder.Services.Configure<GooglePlacesSettings>(builder.Configuration.GetSection("GooglePlaces"));
     builder.Services.AddHttpClient("GooglePlaces");
@@ -98,6 +106,16 @@ try
     builder.Services.AddScoped<IExpoPushService, ExpoPushService>();
     builder.Services.AddSingleton<INotificationQueue, NotificationQueue>();
     builder.Services.AddHostedService<NotificationWorker>();
+    builder.Services.AddHostedService<RatingNotificationWorker>();
+
+    var resendApiKey = builder.Configuration["Resend:ApiKey"];
+    if (string.IsNullOrWhiteSpace(resendApiKey))
+        throw new InvalidOperationException(
+            "Resend:ApiKey is not configured. Set it via environment variable RESEND__APIKEY or user secrets.");
+
+    builder.Services.AddResend(o => o.ApiToken = resendApiKey);
+    builder.Services.AddScoped<IEmailService, ResendEmailService>();
+    builder.Services.AddScoped<IAuthEmailService, AuthEmailService>();
 
     builder.Services.AddScoped<DatabaseSeeder>();
 

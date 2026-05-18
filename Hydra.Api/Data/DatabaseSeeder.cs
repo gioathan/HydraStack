@@ -78,7 +78,8 @@ public class DatabaseSeeder
             {
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-                Role = UserRole.SuperAdmin
+                Role = UserRole.SuperAdmin,
+                IsEmailVerified = true
             });
 
             await _context.SaveChangesAsync(ct);
@@ -194,7 +195,8 @@ public class DatabaseSeeder
                 {
                     Email = seed.AdminEmail,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@12345!"),
-                    Role = UserRole.Admin
+                    Role = UserRole.Admin,
+                    IsEmailVerified = true
                 };
                 _context.Users.Add(adminUser);
                 await _context.SaveChangesAsync(ct);
@@ -274,7 +276,8 @@ public class DatabaseSeeder
                 {
                     Email = seed.Email,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(seed.Password),
-                    Role = UserRole.Customer
+                    Role = UserRole.Customer,
+                    IsEmailVerified = true
                 };
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync(ct);

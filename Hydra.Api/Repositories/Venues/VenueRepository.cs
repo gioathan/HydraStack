@@ -67,4 +67,16 @@ public class VenueRepository : IVenueRepository
         _context.Venues.Update(venue);
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task<BookingRules?> GetRulesByVenueIdAsync(Guid venueId, CancellationToken ct = default)
+    {
+        return await _context.BookingRules
+            .FirstOrDefaultAsync(r => r.VenueId == venueId, ct);
+    }
+
+    public async Task UpdateRulesAsync(BookingRules rules, CancellationToken ct = default)
+    {
+        _context.BookingRules.Update(rules);
+        await _context.SaveChangesAsync(ct);
+    }
 }

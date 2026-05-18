@@ -14,6 +14,7 @@ namespace Hydra.Api.Data
         public virtual DbSet<Customer> Customers => Set<Customer>();
         public virtual DbSet<Booking> Bookings => Set<Booking>();
         public virtual DbSet<VenuePhoto> VenuePhotos => Set<VenuePhoto>();
+        public virtual DbSet<VenueRating> VenueRatings => Set<VenueRating>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +32,10 @@ namespace Hydra.Api.Data
 
                 b.Property(u => u.PasswordHash)
                     .IsRequired();
+
+                b.Property(u => u.IsEmailVerified)
+                    .IsRequired()
+                    .HasDefaultValue(false);
             });
 
             modelBuilder.Entity<VenueType>(b =>
@@ -152,6 +157,34 @@ namespace Hydra.Api.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 b.HasIndex(x => new { x.VenueId, x.StartUtc, x.EndUtc });
+
+                b.Property(x => x.RatingNotificationSentAt).IsRequired(false);
+            });
+
+            modelBuilder.Entity<VenueRating>(b =>
+            {
+                b.HasKey(r => r.Id);
+
+                b.Property(r => r.Value)
+                    .IsRequired()
+                    .HasColumnType("decimal(3,1)");
+
+                b.HasIndex(r => new { r.VenueId, r.CustomerId }).IsUnique();
+
+                b.HasOne(r => r.Venue)
+                    .WithMany()
+                    .HasForeignKey(r => r.VenueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(r => r.Customer)
+                    .WithMany()
+                    .HasForeignKey(r => r.CustomerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne(r => r.Booking)
+                    .WithMany()
+                    .HasForeignKey(r => r.BookingId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

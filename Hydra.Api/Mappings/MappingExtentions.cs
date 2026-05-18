@@ -12,7 +12,11 @@ public static class MappingExtensions
     public static VenuePhotoDto ToDto(this VenuePhoto photo, string? photoUrl = null) =>
         new(photo.Id, photo.GooglePlaceId, photo.DisplayOrder, photoUrl);
 
-    public static VenueDto ToDto(this Venue venue, IReadOnlyList<VenuePhotoDto>? resolvedPhotos = null) =>
+    public static VenueDto ToDto(
+        this Venue venue,
+        IReadOnlyList<VenuePhotoDto>? resolvedPhotos = null,
+        decimal averageRating = 0m,
+        int ratingCount = 0) =>
         new(
             venue.Id,
             venue.Name,
@@ -23,7 +27,9 @@ public static class MappingExtensions
             resolvedPhotos ?? venue.Photos
                 .OrderBy(p => p.DisplayOrder)
                 .Select(p => p.ToDto())
-                .ToList());
+                .ToList(),
+            averageRating,
+            ratingCount);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
@@ -121,7 +127,8 @@ public static class MappingExtensions
         new(
             user.Id,
             user.Email,
-            user.Role.ToString()
+            user.Role.ToString(),
+            user.IsEmailVerified
         );
 
     public static User ToModel(this CreateUserRequest request)

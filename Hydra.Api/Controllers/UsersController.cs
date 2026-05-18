@@ -1,6 +1,7 @@
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Users;
 using Hydra.Api.Services.Users;
+using Hydra.Api.Services.Auth;
 using Hydra.Api.Extensions;
 using Hydra.Api.Auth;
 using Hydra.Api.Models;
@@ -18,11 +19,13 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IJwtTokenService _jwt;
+    private readonly IAuthEmailService _authEmail;
 
-    public UsersController(IUserService userService, IJwtTokenService jwt)
+    public UsersController(IUserService userService, IJwtTokenService jwt, IAuthEmailService authEmail)
     {
         _userService = userService;
         _jwt = jwt;
+        _authEmail = authEmail;
     }
 
     [HttpGet]
@@ -89,6 +92,9 @@ public class UsersController : ControllerBase
                 result.User.Email,
                 UserRole.Customer,
                 customerId: result.Customer.Id);
+
+            await _authEmail.SendVerificationOtpAsync(result.User.Id, result.User.Email, ct);
+
             return Ok(new CustomerAuthResponse(result.User, result.Customer, token));
         }
         catch (InvalidOperationException ex)

@@ -26,4 +26,6 @@ public class Booking
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public DateTime? RatingNotificationSentAt { get; set; }
 }

@@ -1,5 +1,7 @@
 using Hydra.Api.Contracts.Common;
+using Hydra.Api.Contracts.Ratings;
 using Hydra.Api.Contracts.Venues;
+using Hydra.Api.Services.Ratings;
 using Hydra.Api.Services.Venues;
 using Hydra.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +16,12 @@ namespace Hydra.Api.Controllers;
 public class VenuesController : ControllerBase
 {
     private readonly IVenueService _venueService;
+    private readonly IRatingService _ratingService;
 
-    public VenuesController(IVenueService venueService)
+    public VenuesController(IVenueService venueService, IRatingService ratingService)
     {
         _venueService = venueService;
+        _ratingService = ratingService;
     }
 
     [HttpGet]
@@ -106,6 +110,67 @@ public class VenuesController : ControllerBase
         var deleted = await _venueService.DeletePhotoAsync(id, photoId, ct);
         if (!deleted)
             return NotFound(new { message = $"Photo with ID {photoId} not found on venue {id}" });
+
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/rules")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<BookingRulesDto>> GetBookingRules(Guid id, CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var venue = await _venueService.GetVenueByIdAsync(id, ct);
+            if (venue is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (venue.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var rules = await _venueService.GetBookingRulesAsync(id, ct);
+        if (rules is null)
+            return NotFound(new { message = $"Booking rules for venue {id} not found" });
+
+        return Ok(rules);
+    }
+
+    [HttpPatch("{id:guid}/rules")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<BookingRulesDto>> UpdateBookingRules(
+        Guid id,
+        [FromBody] UpdateBookingRulesRequest request,
+        CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var venue = await _venueService.GetVenueByIdAsync(id, ct);
+            if (venue is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (venue.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var rules = await _venueService.UpdateBookingRulesAsync(id, request, ct);
+        if (rules is null)
+            return NotFound(new { message = $"Booking rules for venue {id} not found" });
+
+        return Ok(rules);
+    }
+
+    [HttpPost("{id:guid}/rate")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> RateVenue(
+        Guid id,
+        [FromBody] SubmitRatingRequest request,
+        CancellationToken ct)
+    {
+        var customerId = User.GetCustomerId();
+        if (customerId is null)
+            return Forbid();
+
+        var (success, error) = await _ratingService.SubmitRatingAsync(id, customerId.Value, request, ct);
+        if (!success)
+            return BadRequest(new { message = error });
 
         return NoContent();
     }

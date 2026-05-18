@@ -9,7 +9,9 @@ public record VenueDto(
     int Capacity,
     Guid UserId,
     Guid VenueTypeId,
-    IReadOnlyList<VenuePhotoDto> Photos);
+    IReadOnlyList<VenuePhotoDto> Photos,
+    decimal AverageRating,
+    int RatingCount);
 
 public record CreateVenueRequest(
     string Name,
@@ -23,6 +25,18 @@ public record UpdateVenueRequest(
     string Address,
     int Capacity,
     Guid VenueTypeId);
+
+public record BookingRulesDto(
+    bool AutoConfirm,
+    int SlotMinutes,
+    int OpenHour,
+    int CloseHour);
+
+public record UpdateBookingRulesRequest(
+    bool AutoConfirm,
+    int SlotMinutes,
+    int OpenHour,
+    int CloseHour);
 
 public record AddVenuePhotoRequest(string GooglePlaceId, int DisplayOrder);
 

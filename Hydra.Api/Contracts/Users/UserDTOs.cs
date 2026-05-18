@@ -6,7 +6,8 @@ namespace Hydra.Api.Contracts.Users;
 public record UserDto(
     Guid Id,
     string Email,
-    string Role
+    string Role,
+    bool IsEmailVerified
 );
 
 public record CreateUserRequest(

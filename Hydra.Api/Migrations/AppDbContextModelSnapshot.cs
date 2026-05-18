@@ -40,6 +40,9 @@ namespace Hydra.Api.Migrations
                     b.Property<int>("PartySize")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("RatingNotificationSentAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("StartUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -145,6 +148,11 @@ namespace Hydra.Api.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -222,6 +230,39 @@ namespace Hydra.Api.Migrations
                     b.HasIndex("VenueId", "DisplayOrder");
 
                     b.ToTable("VenuePhotos");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenueRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("decimal(3,1)");
+
+                    b.Property<Guid>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("VenueId", "CustomerId")
+                        .IsUnique();
+
+                    b.ToTable("VenueRatings");
                 });
 
             modelBuilder.Entity("Hydra.Api.Models.VenueType", b =>
@@ -313,6 +354,33 @@ namespace Hydra.Api.Migrations
                         .HasForeignKey("VenueId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenueRating", b =>
+                {
+                    b.HasOne("Hydra.Api.Models.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Hydra.Api.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Hydra.Api.Models.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Customer");
 
                     b.Navigation("Venue");
                 });

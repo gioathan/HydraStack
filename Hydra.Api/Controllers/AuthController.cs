@@ -1,10 +1,13 @@
 using Hydra.Api.Auth;
+using Hydra.Api.Caching;
+using Hydra.Api.Contracts.Auth;
 using Hydra.Api.Contracts.Users;
 using Hydra.Api.Mapping;
 using Hydra.Api.Models;
 using Hydra.Api.Repositories.Customers;
 using Hydra.Api.Repositories.Users;
 using Hydra.Api.Repositories.Venues;
+using Hydra.Api.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -22,17 +25,20 @@ public class AuthController : ControllerBase
     private readonly ICustomerRepository _customerRepo;
     private readonly IVenueRepository _venueRepo;
     private readonly IJwtTokenService _jwt;
+    private readonly IAuthEmailService _authEmail;
 
     public AuthController(
         IUserRepository userRepo,
         ICustomerRepository customerRepo,
         IVenueRepository venueRepo,
-        IJwtTokenService jwt)
+        IJwtTokenService jwt,
+        IAuthEmailService authEmail)
     {
         _userRepo = userRepo;
         _customerRepo = customerRepo;
         _venueRepo = venueRepo;
         _jwt = jwt;
+        _authEmail = authEmail;
     }
 
     [HttpPost("login")]
@@ -46,9 +52,11 @@ public class AuthController : ControllerBase
 
         var user = await _userRepo.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
 
-        // Use constant-time comparison to avoid user-enumeration timing attacks
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized(new { message = "Invalid email or password." });
+
+        if (!user.IsEmailVerified)
+            return StatusCode(403, new { message = "Please verify your email before logging in." });
 
         Guid? customerId = null;
         Guid? venueId = null;
@@ -66,5 +74,110 @@ public class AuthController : ControllerBase
 
         var token = _jwt.GenerateToken(user, customerId, venueId);
         return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId));
+    }
+
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail(
+        [FromBody] VerifyEmailRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest(new { message = "Code is required." });
+
+        var user = await _userRepo.GetByIdAsync(request.UserId, ct);
+        if (user is null)
+            return BadRequest(new { message = "Invalid request." });
+
+        if (user.IsEmailVerified)
+            return Ok(new { message = "Email is already verified." });
+
+        var valid = await _authEmail.VerifyAndConsumeEmailOtpAsync(request.UserId, request.Code, ct);
+        if (!valid)
+            return BadRequest(new { message = "Invalid or expired verification code." });
+
+        user.IsEmailVerified = true;
+        await _userRepo.UpdateAsync(user, ct);
+
+        return Ok(new { message = "Email verified successfully." });
+    }
+
+    [HttpPost("resend-verification")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendVerification(
+        [FromBody] ResendVerificationRequest request,
+        CancellationToken ct)
+    {
+        var user = await _userRepo.GetByIdAsync(request.UserId, ct);
+        if (user is null)
+            return BadRequest(new { message = "Invalid request." });
+
+        if (user.IsEmailVerified)
+            return Ok(new { message = "Email is already verified." });
+
+        var sent = await _authEmail.ResendVerificationOtpAsync(request.UserId, user.Email, ct);
+        if (!sent)
+            return StatusCode(429, new { message = "Too many resend attempts. Please wait before trying again." });
+
+        return Ok(new { message = "Verification code sent." });
+    }
+
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { message = "Email is required." });
+
+        var user = await _userRepo.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
+
+        if (user is not null)
+            await _authEmail.SendPasswordResetOtpAsync(user.Id, user.Email, ct);
+
+        return Ok(new { message = "If an account with that email exists, a reset code has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { message = "Email, code, and new password are required." });
+
+        try
+        {
+            ValidatePassword(request.NewPassword);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
+        var user = await _userRepo.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
+        if (user is null)
+            return BadRequest(new { message = "Invalid or expired reset code." });
+
+        var valid = await _authEmail.VerifyAndConsumePasswordResetOtpAsync(user.Id, request.Code, ct);
+        if (!valid)
+            return BadRequest(new { message = "Invalid or expired reset code." });
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        await _userRepo.UpdateAsync(user, ct);
+
+        return Ok(new { message = "Password reset successfully." });
+    }
+
+    private static void ValidatePassword(string password)
+    {
+        if (password.Length < 10)
+            throw new InvalidOperationException("Password must be at least 10 characters long.");
+        if (!password.Any(char.IsUpper))
+            throw new InvalidOperationException("Password must contain at least one uppercase letter.");
+        if (!password.Any(char.IsDigit))
+            throw new InvalidOperationException("Password must contain at least one digit.");
+        if (!password.Any(c => !char.IsLetterOrDigit(c)))
+            throw new InvalidOperationException("Password must contain at least one special character.");
     }
 }
