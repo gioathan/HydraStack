@@ -6,6 +6,7 @@ public record VenueDto(
     Guid Id,
     string Name,
     string Address,
+    string? Description,
     int Capacity,
     Guid UserId,
     Guid VenueTypeId,
@@ -22,13 +23,15 @@ public record CreateVenueRequest(
     string Address,
     int Capacity,
     Guid VenueTypeId,
-    Guid UserId);
+    Guid UserId,
+    string? Description = null);
 
 public record UpdateVenueRequest(
     string Name,
     string Address,
     int Capacity,
     Guid VenueTypeId,
+    string? Description = null,
     string? Location = null,
     double? Latitude = null,
     double? Longitude = null);

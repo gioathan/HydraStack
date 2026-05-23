@@ -21,6 +21,7 @@ public static class MappingExtensions
             venue.Id,
             venue.Name,
             venue.Address,
+            venue.Description,
             venue.Capacity,
             venue.UserId,
             venue.VenueTypeId,
@@ -42,6 +43,7 @@ public static class MappingExtensions
         {
             Name = request.Name,
             Address = request.Address,
+            Description = request.Description,
             Capacity = request.Capacity,
             VenueTypeId = request.VenueTypeId,
             UserId = request.UserId
@@ -51,6 +53,7 @@ public static class MappingExtensions
     {
         venue.Name = request.Name;
         venue.Address = request.Address;
+        venue.Description = request.Description;
         venue.Capacity = request.Capacity;
         venue.VenueTypeId = request.VenueTypeId;
         venue.Location = request.Location;

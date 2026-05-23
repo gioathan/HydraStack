@@ -185,6 +185,9 @@ namespace Hydra.Api.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
 

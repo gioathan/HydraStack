@@ -34,7 +34,8 @@ public record RegisterVenueRequest(
     string Name,
     string Address,
     int Capacity,
-    Guid VenueTypeId);
+    Guid VenueTypeId,
+    string? Description = null);
 
 public record LoginRequest(string Email, string Password);
 
