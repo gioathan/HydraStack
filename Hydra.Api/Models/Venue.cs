@@ -12,6 +12,7 @@ public class Venue
     public int Capacity { get; set; } = 40;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    public string? Location { get; set; }
 
     public BookingRules? Rules { get; set; }
     public ICollection<VenuePhoto> Photos { get; set; } = new List<VenuePhoto>();

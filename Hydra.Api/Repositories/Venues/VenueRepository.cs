@@ -13,7 +13,7 @@ public class VenueRepository : IVenueRepository
         _context = context;
     }
 
-    public async Task<(List<Venue> Items, int TotalCount)> GetAllAsync(int skip, int take, Guid? venueTypeId = null, string? name = null, CancellationToken ct = default)
+    public async Task<(List<Venue> Items, int TotalCount)> GetAllAsync(int skip, int take, Guid? venueTypeId = null, string? name = null, string? location = null, CancellationToken ct = default)
     {
         var query = _context.Venues
             .AsNoTracking()
@@ -21,11 +21,23 @@ public class VenueRepository : IVenueRepository
             .Include(v => v.Photos.OrderBy(p => p.DisplayOrder))
             .Where(v => venueTypeId == null || v.VenueTypeId == venueTypeId)
             .Where(v => name == null || v.Name.ToLower().Contains(name.ToLower()))
+            .Where(v => location == null || v.Location != null && v.Location.ToLower() == location.ToLower())
             .OrderBy(v => v.Name);
 
         var total = await query.CountAsync(ct);
         var items = await query.Skip(skip).Take(take).ToListAsync(ct);
         return (items, total);
+    }
+
+    public async Task<List<string>> GetLocationsAsync(CancellationToken ct = default)
+    {
+        return await _context.Venues
+            .AsNoTracking()
+            .Where(v => v.Location != null)
+            .Select(v => v.Location!)
+            .Distinct()
+            .OrderBy(l => l)
+            .ToListAsync(ct);
     }
 
     public async Task<Venue?> GetByIdAsync(Guid id, CancellationToken ct = default)

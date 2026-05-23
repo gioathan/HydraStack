@@ -29,7 +29,13 @@ public static class MappingExtensions
                 .Select(p => p.ToDto())
                 .ToList(),
             averageRating,
-            ratingCount);
+            ratingCount,
+            venue.Location,
+            venue.Latitude,
+            venue.Longitude,
+            venue.Latitude.HasValue && venue.Longitude.HasValue
+                ? $"https://maps.google.com/?q={venue.Latitude},{venue.Longitude}"
+                : null);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
@@ -47,6 +53,9 @@ public static class MappingExtensions
         venue.Address = request.Address;
         venue.Capacity = request.Capacity;
         venue.VenueTypeId = request.VenueTypeId;
+        venue.Location = request.Location;
+        venue.Latitude = request.Latitude;
+        venue.Longitude = request.Longitude;
     }
 
     public static CustomerDto ToDto(this Customer customer) =>
@@ -79,6 +88,7 @@ public static class MappingExtensions
             booking.EndUtc,
             booking.PartySize,
             booking.Status.ToString(),
+            booking.VenueComment,
             booking.CreatedAtUtc,
             booking.UpdatedAtUtc
         );

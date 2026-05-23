@@ -11,7 +11,11 @@ public record VenueDto(
     Guid VenueTypeId,
     IReadOnlyList<VenuePhotoDto> Photos,
     decimal AverageRating,
-    int RatingCount);
+    int RatingCount,
+    string? Location,
+    double? Latitude,
+    double? Longitude,
+    string? GoogleMapsUrl);
 
 public record CreateVenueRequest(
     string Name,
@@ -24,7 +28,10 @@ public record UpdateVenueRequest(
     string Name,
     string Address,
     int Capacity,
-    Guid VenueTypeId);
+    Guid VenueTypeId,
+    string? Location = null,
+    double? Latitude = null,
+    double? Longitude = null);
 
 public record BookingRulesDto(
     bool AutoConfirm,

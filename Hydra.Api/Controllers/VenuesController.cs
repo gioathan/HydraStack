@@ -24,6 +24,13 @@ public class VenuesController : ControllerBase
         _ratingService = ratingService;
     }
 
+    [HttpGet("locations")]
+    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetLocations(CancellationToken ct)
+    {
+        return Ok(await _venueService.GetLocationsAsync(ct));
+    }
+
     [HttpGet]
     [Authorize(Roles = "Customer,Admin,SuperAdmin")]
     public async Task<ActionResult<PagedResult<VenueDto>>> GetAllVenues(
@@ -31,9 +38,10 @@ public class VenuesController : ControllerBase
         [FromQuery] int pageSize = 25,
         [FromQuery] Guid? venueTypeId = null,
         [FromQuery] string? name = null,
+        [FromQuery] string? location = null,
         CancellationToken ct = default)
     {
-        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, venueTypeId, name, ct));
+        return Ok(await _venueService.GetAllVenuesAsync(page, pageSize, venueTypeId, name, location, ct));
     }
 
     [HttpGet("{id:guid}")]

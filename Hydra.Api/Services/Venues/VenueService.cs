@@ -32,19 +32,19 @@ public class VenueService : IVenueService
         _googlePlacesService = googlePlacesService;
     }
 
-    public async Task<PagedResult<VenueDto>> GetAllVenuesAsync(int page, int pageSize, Guid? venueTypeId = null, string? name = null, CancellationToken ct = default)
+    public async Task<PagedResult<VenueDto>> GetAllVenuesAsync(int page, int pageSize, Guid? venueTypeId = null, string? name = null, string? location = null, CancellationToken ct = default)
     {
         var safeSize = Math.Clamp(pageSize, 1, 100);
         var skip = (Math.Max(1, page) - 1) * safeSize;
         var version = await _cache.GetTokenAsync(CacheKeys.VenuesToken, ct: ct);
-        var key = CacheKeys.VenuesList(page, safeSize, venueTypeId, version, name);
+        var key = CacheKeys.VenuesList(page, safeSize, venueTypeId, version, name, location);
 
         return await _cache.GetOrSetAsync(
             key: key,
             ttl: CacheKeys.Ttl.VenuesList,
             factory: async ct =>
             {
-                var (items, total) = await _venueRepo.GetAllAsync(skip, safeSize, venueTypeId, name, ct);
+                var (items, total) = await _venueRepo.GetAllAsync(skip, safeSize, venueTypeId, name, location, ct);
 
                 var venueIds = items.Select(v => v.Id);
                 var ratingAggregates = await _ratingRepo.GetAggregatesAsync(venueIds, ct);
@@ -70,6 +70,20 @@ public class VenueService : IVenueService
             jitter: CacheKeys.Jitter.Venues,
             ct: ct
         );
+    }
+
+    public async Task<IReadOnlyList<string>> GetLocationsAsync(CancellationToken ct = default)
+    {
+        var version = await _cache.GetTokenAsync(CacheKeys.VenuesToken, ct: ct);
+        var key = CacheKeys.LocationsList(version);
+
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.VenuesList,
+            factory: async ct => (IReadOnlyList<string>)await _venueRepo.GetLocationsAsync(ct),
+            jitter: CacheKeys.Jitter.Venues,
+            ct: ct
+        ) ?? [];
     }
 
     public async Task<VenueDto?> GetVenueByIdAsync(Guid id, CancellationToken ct = default)

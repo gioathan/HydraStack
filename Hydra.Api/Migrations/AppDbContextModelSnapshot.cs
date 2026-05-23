@@ -52,6 +52,9 @@ namespace Hydra.Api.Migrations
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("VenueComment")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("VenueId")
                         .HasColumnType("uuid");
 
@@ -184,6 +187,9 @@ namespace Hydra.Api.Migrations
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("double precision");

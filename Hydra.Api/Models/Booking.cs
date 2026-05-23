@@ -24,6 +24,8 @@ public class Booking
 
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
+    public string? VenueComment { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 

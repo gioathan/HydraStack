@@ -15,6 +15,7 @@ public record BookingDto(
     DateTime EndUtc,
     int PartySize,
     string Status,
+    string? VenueComment,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc);
 

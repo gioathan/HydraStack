@@ -182,6 +182,7 @@ public class BookingService : IBookingService
             return null;
 
         booking.Confirm();
+        booking.VenueComment = request.Note;
         await _bookingRepo.UpdateAsync(booking, ct);
 
         await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
@@ -211,6 +212,7 @@ public class BookingService : IBookingService
             return null;
 
         booking.Decline();
+        booking.VenueComment = request.Note;
         await _bookingRepo.UpdateAsync(booking, ct);
 
         await _cache.BumpTokenAsync(CacheKeys.BookingsToken, ct);
