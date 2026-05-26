@@ -2,6 +2,12 @@ namespace Hydra.Api.Contracts.Venues;
 
 public record VenuePhotoDto(Guid Id, string GooglePlaceId, int DisplayOrder, string? PhotoUrl);
 
+public record VenuePricingItemDto(Guid Id, string? Category, string Title, string? Subtitle, decimal Price, int DisplayOrder);
+
+public record PricingItemRequest(string Title, string? Subtitle, decimal Price, int DisplayOrder, string? Category = null);
+
+public record SetVenuePricingRequest(IReadOnlyList<PricingItemRequest> Items);
+
 public record VenueDto(
     Guid Id,
     string Name,
@@ -11,6 +17,7 @@ public record VenueDto(
     Guid UserId,
     Guid VenueTypeId,
     IReadOnlyList<VenuePhotoDto> Photos,
+    IReadOnlyList<VenuePricingItemDto> PricingItems,
     decimal AverageRating,
     int RatingCount,
     string? Location,

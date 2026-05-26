@@ -14,6 +14,7 @@ using Hydra.Api.Services.Users;
 using Hydra.Api.Repositories.Bookings;
 using Hydra.Api.Services.Bookings;
 using Hydra.Api.Repositories.VenuePhotos;
+using Hydra.Api.Repositories.VenuePricing;
 using Hydra.Api.Repositories.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
 using Hydra.Api.Repositories.Ratings;
@@ -82,6 +83,7 @@ try
 
     builder.Services.AddScoped<IVenueRepository, VenueRepository>();
     builder.Services.AddScoped<IVenuePhotoRepository, VenuePhotoRepository>();
+    builder.Services.AddScoped<IVenuePricingRepository, VenuePricingRepository>();
     builder.Services.AddScoped<IVenueService, VenueService>();
     builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
     builder.Services.AddScoped<ICustomerService, CustomerService>();

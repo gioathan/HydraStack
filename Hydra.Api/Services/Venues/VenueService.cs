@@ -5,6 +5,7 @@ using Hydra.Api.Mapping;
 using Hydra.Api.Models;
 using Hydra.Api.Repositories.Ratings;
 using Hydra.Api.Repositories.VenuePhotos;
+using Hydra.Api.Repositories.VenuePricing;
 using Hydra.Api.Repositories.Venues;
 using Hydra.Api.Services.GooglePlaces;
 
@@ -15,6 +16,7 @@ public class VenueService : IVenueService
     private readonly IVenueRepository _venueRepo;
     private readonly IVenuePhotoRepository _photoRepo;
     private readonly IRatingRepository _ratingRepo;
+    private readonly IVenuePricingRepository _pricingRepo;
     private readonly ICache _cache;
     private readonly IGooglePlacesService _googlePlacesService;
 
@@ -22,12 +24,14 @@ public class VenueService : IVenueService
         IVenueRepository venueRepo,
         IVenuePhotoRepository photoRepo,
         IRatingRepository ratingRepo,
+        IVenuePricingRepository pricingRepo,
         ICache cache,
         IGooglePlacesService googlePlacesService)
     {
         _venueRepo = venueRepo;
         _photoRepo = photoRepo;
         _ratingRepo = ratingRepo;
+        _pricingRepo = pricingRepo;
         _cache = cache;
         _googlePlacesService = googlePlacesService;
     }
@@ -217,6 +221,30 @@ public class VenueService : IVenueService
         await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
 
         return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
+    }
+
+    public async Task<IReadOnlyList<VenuePricingItemDto>?> SetVenuePricingAsync(Guid venueId, SetVenuePricingRequest request, CancellationToken ct = default)
+    {
+        var venue = await _venueRepo.GetByIdAsync(venueId, ct);
+        if (venue is null)
+            return null;
+
+        var items = request.Items
+            .Select((r, i) => new VenuePricingItem
+            {
+                VenueId = venueId,
+                Category = r.Category,
+                Title = r.Title,
+                Subtitle = r.Subtitle,
+                Price = r.Price,
+                DisplayOrder = r.DisplayOrder
+            })
+            .ToList();
+
+        await _pricingRepo.ReplaceAllAsync(venueId, items, ct);
+        await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
+
+        return items.Select(pi => pi.ToDto()).ToList();
     }
 
     private async Task<IReadOnlyList<VenuePhotoDto>> ResolvePhotoUrlsAsync(

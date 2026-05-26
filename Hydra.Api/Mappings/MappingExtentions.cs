@@ -12,6 +12,9 @@ public static class MappingExtensions
     public static VenuePhotoDto ToDto(this VenuePhoto photo, string? photoUrl = null) =>
         new(photo.Id, photo.GooglePlaceId, photo.DisplayOrder, photoUrl);
 
+    public static VenuePricingItemDto ToDto(this VenuePricingItem item) =>
+        new(item.Id, item.Category, item.Title, item.Subtitle, item.Price, item.DisplayOrder);
+
     public static VenueDto ToDto(
         this Venue venue,
         IReadOnlyList<VenuePhotoDto>? resolvedPhotos = null,
@@ -28,6 +31,10 @@ public static class MappingExtensions
             resolvedPhotos ?? venue.Photos
                 .OrderBy(p => p.DisplayOrder)
                 .Select(p => p.ToDto())
+                .ToList(),
+            venue.PricingItems
+                .OrderBy(pi => pi.DisplayOrder)
+                .Select(pi => pi.ToDto())
                 .ToList(),
             averageRating,
             ratingCount,

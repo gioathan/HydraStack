@@ -46,6 +46,7 @@ public class VenueRepository : IVenueRepository
             .AsNoTracking()
             .Include(v => v.VenueType)
             .Include(v => v.Photos.OrderBy(p => p.DisplayOrder))
+            .Include(v => v.PricingItems.OrderBy(pi => pi.DisplayOrder))
             .FirstOrDefaultAsync(v => v.Id == id, ct);
     }
 

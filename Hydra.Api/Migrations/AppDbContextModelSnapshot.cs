@@ -241,6 +241,41 @@ namespace Hydra.Api.Migrations
                     b.ToTable("VenuePhotos");
                 });
 
+            modelBuilder.Entity("Hydra.Api.Models.VenuePricingItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Subtitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId", "DisplayOrder");
+
+                    b.ToTable("VenuePricingItems");
+                });
+
             modelBuilder.Entity("Hydra.Api.Models.VenueRating", b =>
                 {
                     b.Property<Guid>("Id")
@@ -367,6 +402,17 @@ namespace Hydra.Api.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("Hydra.Api.Models.VenuePricingItem", b =>
+                {
+                    b.HasOne("Hydra.Api.Models.Venue", "Venue")
+                        .WithMany("PricingItems")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("Hydra.Api.Models.VenueRating", b =>
                 {
                     b.HasOne("Hydra.Api.Models.Booking", "Booking")
@@ -404,6 +450,8 @@ namespace Hydra.Api.Migrations
                     b.Navigation("Bookings");
 
                     b.Navigation("Photos");
+
+                    b.Navigation("PricingItems");
 
                     b.Navigation("Rules");
                 });

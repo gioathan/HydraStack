@@ -55,7 +55,7 @@ public class AuthController : ControllerBase
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized(new { message = "Invalid email or password." });
 
-        if (!user.IsEmailVerified)
+        if (!user.IsEmailVerified && user.Role == UserRole.Customer)
             return StatusCode(403, new { message = "Please verify your email before logging in." });
 
         Guid? customerId = null;

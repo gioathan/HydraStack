@@ -165,6 +165,29 @@ public class VenuesController : ControllerBase
         return Ok(rules);
     }
 
+    [HttpPut("{id:guid}/pricing")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<IReadOnlyList<VenuePricingItemDto>>> SetPricing(
+        Guid id,
+        [FromBody] SetVenuePricingRequest request,
+        CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var venue = await _venueService.GetVenueByIdAsync(id, ct);
+            if (venue is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (venue.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var items = await _venueService.SetVenuePricingAsync(id, request, ct);
+        if (items is null)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return Ok(items);
+    }
+
     [HttpPost("{id:guid}/rate")]
     [Authorize(Roles = "Customer")]
     public async Task<IActionResult> RateVenue(

@@ -18,4 +18,5 @@ public class Venue
     public BookingRules? Rules { get; set; }
     public ICollection<VenuePhoto> Photos { get; set; } = new List<VenuePhoto>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<VenuePricingItem> PricingItems { get; set; } = new List<VenuePricingItem>();
 }
