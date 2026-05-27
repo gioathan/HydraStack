@@ -100,6 +100,8 @@ try
     builder.Services.AddHttpClient("GooglePlaces");
     builder.Services.AddScoped<IGooglePlacesService, GooglePlacesService>();
 
+    builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("GoogleAuth"));
+
     builder.Services.AddHttpClient("Expo", client =>
     {
         client.BaseAddress = new Uri("https://exp.host");

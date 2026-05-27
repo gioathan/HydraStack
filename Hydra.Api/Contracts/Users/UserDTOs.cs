@@ -30,11 +30,11 @@ public record RegisterCustomerRequest(
 
 public record RegisterVenueRequest(
     string Email,
-    string Password,
     string Name,
     string Address,
     int Capacity,
     Guid VenueTypeId,
+    string? Password = null,
     string? Description = null);
 
 public record LoginRequest(string Email, string Password);

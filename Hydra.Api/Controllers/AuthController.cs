@@ -1,5 +1,8 @@
+using Asp.Versioning;
+using Google.Apis.Auth;
 using Hydra.Api.Auth;
 using Hydra.Api.Caching;
+using Hydra.Api.Configuration;
 using Hydra.Api.Contracts.Auth;
 using Hydra.Api.Contracts.Users;
 using Hydra.Api.Mapping;
@@ -11,7 +14,7 @@ using Hydra.Api.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Asp.Versioning;
+using Microsoft.Extensions.Options;
 
 namespace Hydra.Api.Controllers;
 
@@ -26,19 +29,22 @@ public class AuthController : ControllerBase
     private readonly IVenueRepository _venueRepo;
     private readonly IJwtTokenService _jwt;
     private readonly IAuthEmailService _authEmail;
+    private readonly GoogleAuthSettings _googleAuth;
 
     public AuthController(
         IUserRepository userRepo,
         ICustomerRepository customerRepo,
         IVenueRepository venueRepo,
         IJwtTokenService jwt,
-        IAuthEmailService authEmail)
+        IAuthEmailService authEmail,
+        IOptions<GoogleAuthSettings> googleAuth)
     {
         _userRepo = userRepo;
         _customerRepo = customerRepo;
         _venueRepo = venueRepo;
         _jwt = jwt;
         _authEmail = authEmail;
+        _googleAuth = googleAuth.Value;
     }
 
     [HttpPost("login")]
@@ -53,7 +59,12 @@ public class AuthController : ControllerBase
         var user = await _userRepo.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), ct);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        {
+            if (user?.AuthProvider == AuthProvider.Google)
+                return Unauthorized(new { message = "This account uses Google Sign-In. Please log in with Google." });
+
             return Unauthorized(new { message = "Invalid email or password." });
+        }
 
         if (!user.IsEmailVerified && user.Role == UserRole.Customer)
             return StatusCode(403, new { message = "Please verify your email before logging in." });
@@ -74,6 +85,65 @@ public class AuthController : ControllerBase
 
         var token = _jwt.GenerateToken(user, customerId, venueId);
         return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId));
+    }
+
+    [HttpPost("google")]
+    [EnableRateLimiting("auth")]
+    public async Task<ActionResult<LoginResponse>> GoogleLogin(
+        [FromBody] GoogleAuthRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+            return BadRequest(new { message = "ID token is required." });
+
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken,
+                new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = [_googleAuth.ClientId]
+                });
+        }
+        catch
+        {
+            return Unauthorized(new { message = "Invalid Google token." });
+        }
+
+        var email = payload.Email.Trim().ToLowerInvariant();
+        var user = await _userRepo.GetByEmailAsync(email, ct);
+
+        if (user is null)
+        {
+            user = new User
+            {
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+                Role = UserRole.Customer,
+                IsEmailVerified = true,
+                AuthProvider = AuthProvider.Google
+            };
+            await _userRepo.AddAsync(user, ct);
+
+            await _customerRepo.AddAsync(new Customer
+            {
+                UserId = user.Id,
+                Name = payload.Name,
+                Email = email,
+                Locale = "en",
+                CreatedAtUtc = DateTime.UtcNow
+            }, ct);
+        }
+
+        Guid? customerId = null;
+        if (user.Role == UserRole.Customer)
+        {
+            var customer = await _customerRepo.GetByUserIdAsync(user.Id, ct);
+            customerId = customer?.Id;
+        }
+
+        var token = _jwt.GenerateToken(user, customerId);
+        return Ok(new LoginResponse(user.ToDto(), token, customerId));
     }
 
     [HttpPost("verify-email")]

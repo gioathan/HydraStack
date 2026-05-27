@@ -1,11 +1,12 @@
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Contracts.Users;
+using Hydra.Api.Contracts.Venues;
+using Hydra.Api.Data;
 using Hydra.Api.Mapping;
+using Hydra.Api.Models;
 using Hydra.Api.Repositories.Users;
 using Hydra.Api.Services.Customers;
-using Hydra.Api.Data;
-using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Services.Venues;
 
 namespace Hydra.Api.Services.Users;
@@ -156,11 +157,6 @@ public class UserService : IUserService
         if (string.IsNullOrWhiteSpace(request.Email))
             throw new InvalidOperationException("Email is required");
 
-        if (string.IsNullOrWhiteSpace(request.Password))
-            throw new InvalidOperationException("Password is required");
-
-        ValidatePassword(request.Password);
-
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new InvalidOperationException("Name is required");
 
@@ -170,23 +166,31 @@ public class UserService : IUserService
         if (string.IsNullOrWhiteSpace(request.Address))
             throw new InvalidOperationException("Address is required");
 
+        var isGoogleAuth = string.IsNullOrWhiteSpace(request.Password);
+
+        if (!isGoogleAuth)
+            ValidatePassword(request.Password!);
+
         var existingUser = await _userRepo.GetByEmailAsync(request.Email, ct);
         if (existingUser is not null)
-        {
             throw new InvalidOperationException($"User with email '{request.Email}' already exists");
-        }
 
         using var transaction = await _context.Database.BeginTransactionAsync(ct);
 
         try
         {
-            var userRequest = new CreateUserRequest(
-                Email: request.Email,
-                Password: request.Password,
-                Role: "Admin"
-            );
+            var passwordHash = isGoogleAuth
+                ? BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString())
+                : BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            var user = await CreateUserAsync(userRequest, ct);
+            var user = await _userRepo.AddAsync(new User
+            {
+                Email = request.Email.Trim().ToLowerInvariant(),
+                PasswordHash = passwordHash,
+                Role = UserRole.Admin,
+                IsEmailVerified = true,
+                AuthProvider = isGoogleAuth ? AuthProvider.Google : AuthProvider.Email
+            }, ct);
 
             var venueRequest = new CreateVenueRequest(
                 UserId: user.Id,
@@ -201,7 +205,7 @@ public class UserService : IUserService
 
             await transaction.CommitAsync(ct);
 
-            return (user, venue);
+            return (user.ToDto(), venue);
         }
         catch (Exception)
         {
