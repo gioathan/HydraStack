@@ -81,9 +81,11 @@ public class VenuesController : ControllerBase
 
     [HttpPost("{id:guid}/photos")]
     [Authorize(Roles = "SuperAdmin,Admin")]
+    [Consumes("multipart/form-data")]
     public async Task<ActionResult<VenuePhotoDto>> AddPhoto(
         Guid id,
-        [FromBody] AddVenuePhotoRequest request,
+        IFormFile file,
+        [FromForm] int displayOrder,
         CancellationToken ct)
     {
         if (User.GetRole() == "Admin")
@@ -95,7 +97,10 @@ public class VenuesController : ControllerBase
                 return Forbid();
         }
 
-        var photo = await _venueService.AddPhotoAsync(id, request, ct);
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "A photo file is required." });
+
+        var photo = await _venueService.AddPhotoAsync(id, file, displayOrder, ct);
         if (photo is null)
             return NotFound(new { message = $"Venue with ID {id} not found" });
 

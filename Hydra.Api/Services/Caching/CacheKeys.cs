@@ -20,12 +20,6 @@ public static class CacheKeys
         public static readonly TimeSpan RatingAggregate = TimeSpan.FromMinutes(10);
         /// <summary>Pending ratings change after bookings end; keep short.</summary>
         public static readonly TimeSpan PendingRatings = TimeSpan.FromMinutes(2);
-        /// <summary>
-        /// TTL for Google Places photo URLs (23 hours).
-        /// photo_reference values are stable for days; 23h avoids serving a stale
-        /// reference right as Google rotates it.
-        /// </summary>
-        public static readonly TimeSpan GooglePlacesPhoto = TimeSpan.FromHours(23);
     }
 
     public static class Jitter
@@ -109,11 +103,4 @@ public static class CacheKeys
     /// <summary>Pending ratings list for a customer.</summary>
     public static string PendingRatings(Guid customerId, int version)
         => $"{Ns}:ratings:pending:v{version}:{customerId}";
-
-    // ==========================================
-    // GOOGLE PLACES CACHE KEYS
-    // ==========================================
-
-    public static string GooglePlacesPhoto(string googlePlaceId, int maxWidth)
-        => $"{Ns}:gplaces:photo:{googlePlaceId}:{maxWidth}";
 }
