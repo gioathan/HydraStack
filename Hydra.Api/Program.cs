@@ -1,4 +1,4 @@
-﻿using Hydra.Api.Data;
+using Hydra.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
@@ -152,18 +152,25 @@ try
         };
     });
 
+    // CORS origins are configured via Cors:AllowedOrigins in appsettings.json or
+    // environment variables (CORS__ALLOWEDORIGINS__0, CORS__ALLOWEDORIGINS__1, ...).
+    var allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>();
+
+    if (allowedOrigins is null || allowedOrigins.Length == 0)
+        throw new InvalidOperationException(
+            "Cors:AllowedOrigins must have at least one entry. " +
+            "Set via appsettings.json or env vars CORS__ALLOWEDORIGINS__0, CORS__ALLOWEDORIGINS__1, ...");
+
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
         {
-            policy.WithOrigins(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:4200"
-            )
-            .AllowAnyMethod()
-            .WithHeaders("Content-Type", "Authorization")
-            .AllowCredentials();
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyMethod()
+                .WithHeaders("Content-Type", "Authorization")
+                .AllowCredentials();
         });
     });
 
@@ -182,7 +189,6 @@ try
 
     builder.Services.AddRateLimiter(options =>
     {
-        // Strict policy for registration and password changes: 5 requests per 15 min per IP
         options.AddSlidingWindowLimiter("auth", opt =>
         {
             opt.PermitLimit = 5;
@@ -192,7 +198,6 @@ try
             opt.QueueLimit = 0;
         });
 
-        // Moderate policy for booking creation: 20 requests per minute per IP
         options.AddSlidingWindowLimiter("bookings", opt =>
         {
             opt.PermitLimit = 20;
@@ -210,9 +215,6 @@ try
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
 
-    // ========================================
-    // SWAGGER WITH JWT SUPPORT
-    // ========================================
     builder.Services.AddSwaggerGen(options =>
     {
         options.SwaggerDoc("v1", new OpenApiInfo
@@ -222,7 +224,6 @@ try
             Description = "Restaurant booking management system with JWT authentication"
         });
 
-        // Add JWT Authentication to Swagger
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             Name = "Authorization",
@@ -257,7 +258,6 @@ try
         db.Database.Migrate();
     }
 
-    // --seed flag: run seeder and exit (for staging/CI use)
     if (args.Contains("--seed"))
     {
         // using var seedScope = app.Services.CreateScope();
@@ -266,7 +266,6 @@ try
         // return;
     }
 
-    // Seed development data automatically on startup
     if (app.Environment.IsDevelopment())
     {
         using var seedScope = app.Services.CreateScope();

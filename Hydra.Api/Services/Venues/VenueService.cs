@@ -105,8 +105,23 @@ public class VenueService : IVenueService
                     return null;
 
                 var resolvedPhotos = await ResolvePhotoUrlsAsync(venue.Photos, ct);
-                var (avg, count) = await _ratingRepo.GetAggregateAsync(id, ct);
-                return venue.ToDto(resolvedPhotos, avg, count);
+
+                // Rating aggregate is cached independently so a venue name/photo change
+                // (which bumps VenuesToken) doesn't force a rating DB re-fetch.
+                var ratingsVersion = await _cache.GetTokenAsync(CacheKeys.RatingsToken, ct: ct);
+                var ratingKey = CacheKeys.RatingAggregate(id, ratingsVersion);
+                var ratingEntry = await _cache.GetOrSetAsync(
+                    key: ratingKey,
+                    ttl: CacheKeys.Ttl.RatingAggregate,
+                    factory: async ct =>
+                    {
+                        var (avg, count) = await _ratingRepo.GetAggregateAsync(id, ct);
+                        return new RatingCacheEntry(avg, count);
+                    },
+                    jitter: CacheKeys.Jitter.Ratings,
+                    ct: ct);
+
+                return venue.ToDto(resolvedPhotos, ratingEntry?.Average ?? 0m, ratingEntry?.Count ?? 0);
             },
             cacheNull: true,
             jitter: CacheKeys.Jitter.Venues,

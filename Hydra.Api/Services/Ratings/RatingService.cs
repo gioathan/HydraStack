@@ -51,7 +51,9 @@ public class RatingService : IRatingService
             CreatedAtUtc = DateTime.UtcNow
         }, ct);
 
+        // Invalidate venue display (average shown on cards) and the rating aggregate cache
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
+        await _cache.BumpTokenAsync(CacheKeys.RatingsToken, ct);
 
         return (true, null);
     }
@@ -60,6 +62,14 @@ public class RatingService : IRatingService
         Guid customerId,
         CancellationToken ct = default)
     {
-        return await _ratingRepo.GetPendingRatingsAsync(customerId, ct);
+        var version = await _cache.GetTokenAsync(CacheKeys.RatingsToken, ct: ct);
+        var key = CacheKeys.PendingRatings(customerId, version);
+
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.PendingRatings,
+            factory: ct => _ratingRepo.GetPendingRatingsAsync(customerId, ct),
+            jitter: CacheKeys.Jitter.Ratings,
+            ct: ct) ?? [];
     }
 }
