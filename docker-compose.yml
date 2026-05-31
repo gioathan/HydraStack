@@ -1,13 +1,30 @@
 services:
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    environment:
+      DOMAIN: "${DOMAIN}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - hydra.api
+
   hydra.api:
     image: hydra-booking-api
     build:
       context: .
       dockerfile: Hydra.Api/Dockerfile
     restart: unless-stopped
-    ports:
-      - "8080:8080"
+    # Port no longer exposed to host — Caddy is the only ingress
+    expose:
+      - "8080"
     environment:
       ConnectionStrings__Postgres: "Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
@@ -15,6 +32,7 @@ services:
       GooglePlaces__ApiKey: "${GOOGLE_PLACES_API_KEY}"
       Resend__ApiKey: "${RESEND_API_KEY}"
       GoogleAuth__ClientId: "${GOOGLEAUTH__CLIENTID}"
+      ASPNETCORE_URLS: "http://+:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,13 +53,18 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    ports:
-      - "5432:5432"
+    # Not exposed externally — access via psql inside the container or SSH tunnel
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    command: [
+      "redis-server",
+      "--appendonly", "yes",
+      "--requirepass", "${REDIS_PASSWORD}",
+      "--maxmemory", "256mb",
+      "--maxmemory-policy", "allkeys-lru"
+    ]
     volumes:
       - redisdata:/data
     healthcheck:
@@ -49,9 +72,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    ports:
-      - "6379:6379"
+    # Not exposed externally
 
 volumes:
   pgdata:
   redisdata:
+  caddy_data:
+  caddy_config:
