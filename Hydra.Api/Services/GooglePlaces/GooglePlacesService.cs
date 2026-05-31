@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hydra.Api.Caching;
 using Hydra.Api.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -8,15 +9,18 @@ public class GooglePlacesService : IGooglePlacesService
 {
     private readonly HttpClient _http;
     private readonly GooglePlacesSettings _settings;
+    private readonly ICache _cache;
     private readonly ILogger<GooglePlacesService> _logger;
 
     public GooglePlacesService(
         IHttpClientFactory httpClientFactory,
         IOptions<GooglePlacesSettings> options,
+        ICache cache,
         ILogger<GooglePlacesService> logger)
     {
         _http = httpClientFactory.CreateClient("GooglePlaces");
         _settings = options.Value;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -38,6 +42,21 @@ public class GooglePlacesService : IGooglePlacesService
             return null;
         }
 
+        var cacheKey = CacheKeys.GooglePlacesPhoto(googlePlaceId, maxWidth);
+
+        return await _cache.GetOrSetAsync(
+            key: cacheKey,
+            ttl: CacheKeys.Ttl.GooglePlacesPhoto,
+            factory: ct => FetchPhotoUrlAsync(googlePlaceId, maxWidth, ct),
+            cacheNull: false,
+            ct: ct);
+    }
+
+    private async Task<string?> FetchPhotoUrlAsync(
+        string googlePlaceId,
+        int maxWidth,
+        CancellationToken ct)
+    {
         try
         {
             var detailsUrl =
