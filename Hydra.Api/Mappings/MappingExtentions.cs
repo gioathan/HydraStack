@@ -1,4 +1,4 @@
-﻿using Hydra.Api.Models;
+using Hydra.Api.Models;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Contracts.Bookings;
@@ -9,8 +9,8 @@ namespace Hydra.Api.Mapping;
 
 public static class MappingExtensions
 {
-    public static VenuePhotoDto ToDto(this VenuePhoto photo, string? photoUrl = null) =>
-        new(photo.Id, photo.GooglePlaceId, photo.DisplayOrder, photoUrl);
+    public static VenuePhotoDto ToDto(this VenuePhoto photo) =>
+        new(photo.Id, photo.Url, photo.DisplayOrder);
 
     public static VenuePricingItemDto ToDto(this VenuePricingItem item) =>
         new(item.Id, item.Category, item.Title, item.Subtitle, item.Price, item.DisplayOrder);
@@ -153,7 +153,7 @@ public static class MappingExtensions
 
     public static User ToModel(this CreateUserRequest request)
     {
-        var role = UserRole.Customer; // default
+        var role = UserRole.Customer;
         if (!string.IsNullOrWhiteSpace(request.Role) &&
             Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var parsed))
         {

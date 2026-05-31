@@ -23,7 +23,7 @@ using Serilog;
 using Serilog.Events;
 using Hydra.Api.Auth;
 using Hydra.Api.Configuration;
-using Hydra.Api.Services.GooglePlaces;
+using Hydra.Api.Services.Storage;
 using Hydra.Api.Services.Notifications;
 using Hydra.Api.Services.Email;
 using Hydra.Api.Services.Auth;
@@ -35,6 +35,8 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Amazon.S3;
+using Amazon.Runtime;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -96,9 +98,25 @@ try
     builder.Services.AddScoped<IRatingRepository, RatingRepository>();
     builder.Services.AddScoped<IRatingService, RatingService>();
 
-    builder.Services.Configure<GooglePlacesSettings>(builder.Configuration.GetSection("GooglePlaces"));
-    builder.Services.AddHttpClient("GooglePlaces");
-    builder.Services.AddScoped<IGooglePlacesService, GooglePlacesService>();
+    // Cloudflare R2 storage (S3-compatible)
+    var r2Settings = builder.Configuration.GetSection("CloudflareR2").Get<CloudflareR2Settings>();
+    if (r2Settings is null || string.IsNullOrWhiteSpace(r2Settings.AccountId))
+        throw new InvalidOperationException(
+            "CloudflareR2 settings must be configured. Set CLOUDFLARER2__ACCOUNTID, CLOUDFLARER2__ACCESSKEYID, " +
+            "CLOUDFLARER2__SECRETACCESSKEY, CLOUDFLARER2__BUCKETNAME, and CLOUDFLARER2__PUBLICDOMAIN.");
+
+    builder.Services.Configure<CloudflareR2Settings>(builder.Configuration.GetSection("CloudflareR2"));
+    builder.Services.AddSingleton<IAmazonS3>(_ =>
+    {
+        var config = new AmazonS3Config
+        {
+            ServiceURL = $"https://{r2Settings.AccountId}.r2.cloudflarestorage.com",
+            ForcePathStyle = true
+        };
+        var credentials = new BasicAWSCredentials(r2Settings.AccessKeyId, r2Settings.SecretAccessKey);
+        return new AmazonS3Client(credentials, config);
+    });
+    builder.Services.AddScoped<IStorageService, CloudflareR2Service>();
 
     builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("GoogleAuth"));
 

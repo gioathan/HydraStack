@@ -7,7 +7,8 @@ using Hydra.Api.Repositories.Ratings;
 using Hydra.Api.Repositories.VenuePhotos;
 using Hydra.Api.Repositories.VenuePricing;
 using Hydra.Api.Repositories.Venues;
-using Hydra.Api.Services.GooglePlaces;
+using Hydra.Api.Services.Storage;
+using Microsoft.AspNetCore.Http;
 
 namespace Hydra.Api.Services.Venues;
 
@@ -18,7 +19,7 @@ public class VenueService : IVenueService
     private readonly IRatingRepository _ratingRepo;
     private readonly IVenuePricingRepository _pricingRepo;
     private readonly ICache _cache;
-    private readonly IGooglePlacesService _googlePlacesService;
+    private readonly IStorageService _storage;
 
     public VenueService(
         IVenueRepository venueRepo,
@@ -26,14 +27,14 @@ public class VenueService : IVenueService
         IRatingRepository ratingRepo,
         IVenuePricingRepository pricingRepo,
         ICache cache,
-        IGooglePlacesService googlePlacesService)
+        IStorageService storage)
     {
         _venueRepo = venueRepo;
         _photoRepo = photoRepo;
         _ratingRepo = ratingRepo;
         _pricingRepo = pricingRepo;
         _cache = cache;
-        _googlePlacesService = googlePlacesService;
+        _storage = storage;
     }
 
     public async Task<PagedResult<VenueDto>> GetAllVenuesAsync(int page, int pageSize, Guid? venueTypeId = null, string? name = null, string? location = null, CancellationToken ct = default)
@@ -53,23 +54,17 @@ public class VenueService : IVenueService
                 var venueIds = items.Select(v => v.Id);
                 var ratingAggregates = await _ratingRepo.GetAggregatesAsync(venueIds, ct);
 
-                var dtos = await Task.WhenAll(items.Select(async v =>
+                var dtos = items.Select(v =>
                 {
                     ratingAggregates.TryGetValue(v.Id, out var agg);
-
-                    var cover = v.Photos.MinBy(p => p.DisplayOrder);
-                    if (cover is null)
-                        return v.ToDto(averageRating: agg.Average, ratingCount: agg.Count);
-
-                    var url = await _googlePlacesService.GetPhotoUrlAsync(cover.GooglePlaceId, ct: ct);
                     var photos = v.Photos
                         .OrderBy(p => p.DisplayOrder)
-                        .Select(p => p.Id == cover.Id ? p.ToDto(url) : p.ToDto())
+                        .Select(p => p.ToDto())
                         .ToList();
                     return v.ToDto(photos, agg.Average, agg.Count);
-                }));
+                }).ToList();
 
-                return new PagedResult<VenueDto>(dtos.ToList(), total, page, safeSize);
+                return new PagedResult<VenueDto>(dtos, total, page, safeSize);
             },
             jitter: CacheKeys.Jitter.Venues,
             ct: ct
@@ -104,7 +99,10 @@ public class VenueService : IVenueService
                 if (venue is null)
                     return null;
 
-                var resolvedPhotos = await ResolvePhotoUrlsAsync(venue.Photos, ct);
+                var resolvedPhotos = venue.Photos
+                    .OrderBy(p => p.DisplayOrder)
+                    .Select(p => p.ToDto())
+                    .ToList();
 
                 // Rating aggregate is cached independently so a venue name/photo change
                 // (which bumps VenuesToken) doesn't force a rating DB re-fetch.
@@ -152,24 +150,29 @@ public class VenueService : IVenueService
         return venue.ToDto();
     }
 
-    public async Task<VenuePhotoDto?> AddPhotoAsync(Guid venueId, AddVenuePhotoRequest request, CancellationToken ct = default)
+    public async Task<VenuePhotoDto?> AddPhotoAsync(Guid venueId, IFormFile file, int displayOrder, CancellationToken ct = default)
     {
         var venue = await _venueRepo.GetByIdAsync(venueId, ct);
         if (venue is null)
             return null;
 
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var key = $"venues/{venueId}/{Guid.NewGuid()}{ext}";
+
+        await using var stream = file.OpenReadStream();
+        var url = await _storage.UploadAsync(stream, key, file.ContentType, ct);
+
         var photo = new VenuePhoto
         {
             VenueId = venueId,
-            GooglePlaceId = request.GooglePlaceId,
-            DisplayOrder = request.DisplayOrder
+            Url = url,
+            DisplayOrder = displayOrder
         };
 
         await _photoRepo.AddAsync(photo, ct);
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
 
-        var url = await _googlePlacesService.GetPhotoUrlAsync(photo.GooglePlaceId, ct: ct);
-        return photo.ToDto(url);
+        return photo.ToDto();
     }
 
     public async Task<bool> DeletePhotoAsync(Guid venueId, Guid photoId, CancellationToken ct = default)
@@ -177,6 +180,11 @@ public class VenueService : IVenueService
         var photo = await _photoRepo.GetByIdAsync(photoId, ct);
         if (photo is null || photo.VenueId != venueId)
             return false;
+
+        // Extract the storage key from the URL: everything after the domain
+        var uri = new Uri(photo.Url);
+        var key = uri.AbsolutePath.TrimStart('/');
+        await _storage.DeleteAsync(key, ct);
 
         await _photoRepo.DeleteAsync(photo, ct);
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
@@ -260,18 +268,5 @@ public class VenueService : IVenueService
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
 
         return items.Select(pi => pi.ToDto()).ToList();
-    }
-
-    private async Task<IReadOnlyList<VenuePhotoDto>> ResolvePhotoUrlsAsync(
-        IEnumerable<VenuePhoto> photos,
-        CancellationToken ct)
-    {
-        var ordered = photos.OrderBy(p => p.DisplayOrder).ToList();
-        var tasks = ordered.Select(async p =>
-        {
-            var url = await _googlePlacesService.GetPhotoUrlAsync(p.GooglePlaceId, ct: ct);
-            return p.ToDto(url);
-        });
-        return await Task.WhenAll(tasks);
     }
 }
