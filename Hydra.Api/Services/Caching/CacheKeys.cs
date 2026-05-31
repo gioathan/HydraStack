@@ -1,24 +1,11 @@
-﻿using System;
+using System;
 
 namespace Hydra.Api.Caching;
 
-/// <summary>
-/// Centralized cache key management for Hydra booking system.
-/// All keys are prefixed with a namespace to prevent collisions with other applications.
-/// Uses version-based invalidation: when data changes, bump the version token to invalidate all related caches.
-/// </summary>
 public static class CacheKeys
 {
-    /// <summary>
-    /// Namespace prefix for all cache keys (hydra-booking).
-    /// Prevents key collisions if Redis is shared across multiple applications.
-    /// </summary>
     public const string Ns = "hb";
 
-    /// <summary>
-    /// Cache TTL (Time To Live) configurations.
-    /// Defines how long different types of data should be cached.
-    /// </summary>
     public static class Ttl
     {
         /// <summary>TTL for venue list cache (10 minutes)</summary>
@@ -35,12 +22,15 @@ public static class CacheKeys
 
         /// <summary>TTL for booking lists (10 minutes)</summary>
         public static readonly TimeSpan BookingsList = TimeSpan.FromMinutes(10);
+
+        /// <summary>
+        /// TTL for Google Places photo URLs (23 hours).
+        /// photo_reference values are stable for days; 23h avoids serving a stale
+        /// reference right as Google rotates it.
+        /// </summary>
+        public static readonly TimeSpan GooglePlacesPhoto = TimeSpan.FromHours(23);
     }
 
-    /// <summary>
-    /// Jitter configurations to prevent cache stampede.
-    /// Jitter adds random variation to expiration times so not all caches expire simultaneously.
-    /// </summary>
     public static class Jitter
     {
         /// <summary>Jitter range for venue caches (±30 seconds)</summary>
@@ -57,60 +47,25 @@ public static class CacheKeys
     // VERSION TOKENS
     // ==========================================
 
-    /// <summary>
-    /// Version token for venue-related caches.
-    /// Call BumpTokenAsync(VenuesToken) after creating/updating/deleting a venue to invalidate all venue caches.
-    /// </summary>
     public static string VenuesToken => $"{Ns}:venues:ver";
-
-    /// <summary>
-    /// Version token for availability-related caches.
-    /// Call BumpTokenAsync(AvailabilityToken) when availability data changes.
-    /// </summary>
     public static string AvailabilityToken => $"{Ns}:availability:ver";
-
-    /// <summary>
-    /// Version token for booking-related caches.
-    /// Call BumpTokenAsync(BookingsToken) after creating/updating/deleting a booking.
-    /// </summary>
     public static string BookingsToken => $"{Ns}:bookings:ver";
 
     // ==========================================
     // VENUE CACHE KEYS
     // ==========================================
 
-    /// <summary>
-    /// Generates cache key for the list of all venues.
-    /// Example: "hb:venues:list:v1"
-    /// </summary>
-    /// <param name="version">Version number from VenuesToken</param>
-    /// <returns>Versioned cache key for venue list</returns>
-    public static string VenuesList(int page, int pageSize, Guid? venueTypeId, int version, string? name = null, string? location = null) => $"{Ns}:venues:list:v{version}:p{page}:s{pageSize}:t{venueTypeId}:n{name?.ToLowerInvariant()}:l{location?.ToLowerInvariant()}";
+    public static string VenuesList(int page, int pageSize, Guid? venueTypeId, int version, string? name = null, string? location = null)
+        => $"{Ns}:venues:list:v{version}:p{page}:s{pageSize}:t{venueTypeId}:n{name?.ToLowerInvariant()}:l{location?.ToLowerInvariant()}";
 
     public static string LocationsList(int version) => $"{Ns}:venues:locations:v{version}";
 
-    /// <summary>
-    /// Generates cache key for a specific venue's details.
-    /// Example: "hb:venues:v1:3fa85f64-5717-4562-b3fc-2c963f66afa6"
-    /// </summary>
-    /// <param name="id">Venue ID</param>
-    /// <param name="version">Version number from VenuesToken</param>
-    /// <returns>Versioned cache key for venue detail</returns>
     public static string VenueDetail(Guid id, int version) => $"{Ns}:venues:v{version}:{id}";
 
     // ==========================================
     // AVAILABILITY CACHE KEYS
     // ==========================================
 
-    /// <summary>
-    /// Generates cache key for availability query.
-    /// Example: "hb:availability:v1:venue-guid:2025-10-25:p4"
-    /// </summary>
-    /// <param name="venueId">Venue ID</param>
-    /// <param name="date">Date to check availability</param>
-    /// <param name="partySize">Number of guests</param>
-    /// <param name="version">Version number from AvailabilityToken</param>
-    /// <returns>Versioned cache key for availability</returns>
     public static string Availability(Guid venueId, DateOnly date, int partySize, int version)
         => $"{Ns}:availability:v{version}:{venueId}:{date:yyyy-MM-dd}:p{partySize}";
 
@@ -118,23 +73,8 @@ public static class CacheKeys
     // BOOKING CACHE KEYS
     // ==========================================
 
-    /// <summary>
-    /// Generates cache key for a specific booking's details.
-    /// Example: "hb:bookings:v1:booking-guid"
-    /// </summary>
-    /// <param name="id">Booking ID</param>
-    /// <param name="version">Version number from BookingsToken</param>
-    /// <returns>Versioned cache key for booking detail</returns>
     public static string BookingDetail(Guid id, int version) => $"{Ns}:bookings:v{version}:{id}";
 
-    /// <summary>
-    /// Generates cache key for filtered booking list.
-    /// Example: "hb:bookings:v1:venue:guid" or "hb:bookings:v1:customer:guid"
-    /// </summary>
-    /// <param name="venueId">Optional venue ID filter</param>
-    /// <param name="customerId">Optional customer ID filter</param>
-    /// <param name="version">Version number from BookingsToken</param>
-    /// <returns>Versioned cache key for booking list with filters</returns>
     public static string BookingsList(Guid? venueId, Guid? customerId, string? status, int page, int pageSize, int version)
     {
         var parts = new List<string> { Ns, "bookings", $"v{version}", $"p{page}", $"s{pageSize}" };
@@ -143,4 +83,16 @@ public static class CacheKeys
         if (!string.IsNullOrWhiteSpace(status)) parts.Add($"status:{status.ToLower()}");
         return string.Join(":", parts);
     }
+
+    // ==========================================
+    // GOOGLE PLACES CACHE KEYS
+    // ==========================================
+
+    /// <summary>
+    /// Cache key for a resolved Google Places photo URL.
+    /// Keyed by place ID and maxWidth so different sizes don't collide.
+    /// Example: hb:gplaces:photo:ChIJ...:800
+    /// </summary>
+    public static string GooglePlacesPhoto(string googlePlaceId, int maxWidth)
+        => $"{Ns}:gplaces:photo:{googlePlaceId}:{maxWidth}";
 }
