@@ -1,3 +1,4 @@
+using Hydra.Api.Caching;
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Customers;
 using Hydra.Api.Mapping;
@@ -8,10 +9,12 @@ namespace Hydra.Api.Services.Customers;
 public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _customerRepo;
+    private readonly ICache _cache;
 
-    public CustomerService(ICustomerRepository customerRepo)
+    public CustomerService(ICustomerRepository customerRepo, ICache cache)
     {
         _customerRepo = customerRepo;
+        _cache = cache;
     }
 
     public async Task<PagedResult<CustomerDto>> GetAllCustomersAsync(int page, int pageSize, CancellationToken ct = default)
@@ -24,8 +27,20 @@ public class CustomerService : ICustomerService
 
     public async Task<CustomerDto?> GetCustomerByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var customer = await _customerRepo.GetByIdAsync(id, ct);
-        return customer?.ToDto();
+        var version = await _cache.GetTokenAsync(CacheKeys.CustomersToken, ct: ct);
+        var key = CacheKeys.CustomerDetail(id, version);
+
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.CustomerDetail,
+            factory: async ct =>
+            {
+                var customer = await _customerRepo.GetByIdAsync(id, ct);
+                return customer?.ToDto();
+            },
+            cacheNull: true,
+            jitter: CacheKeys.Jitter.Customers,
+            ct: ct);
     }
 
     public async Task<CustomerDto?> GetCustomerByEmailAsync(string email, CancellationToken ct = default)
@@ -43,31 +58,25 @@ public class CustomerService : ICustomerService
     public async Task<CustomerDto> CreateCustomerAsync(CreateCustomerRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
-        {
             throw new InvalidOperationException("Either Email or Phone must be provided");
-        }
 
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
             var existingByEmail = await _customerRepo.GetByEmailAsync(request.Email, ct);
             if (existingByEmail is not null)
-            {
                 throw new InvalidOperationException($"Customer with email '{request.Email}' already exists");
-            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             var existingByPhone = await _customerRepo.GetByPhoneAsync(request.Phone, ct);
             if (existingByPhone is not null)
-            {
                 throw new InvalidOperationException($"Customer with phone '{request.Phone}' already exists");
-            }
         }
 
         var customer = request.ToModel();
         var created = await _customerRepo.AddAsync(customer, ct);
-
+        await _cache.BumpTokenAsync(CacheKeys.CustomersToken, ct);
         return created.ToDto();
     }
 
@@ -78,31 +87,25 @@ public class CustomerService : ICustomerService
             return null;
 
         if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
-        {
             throw new InvalidOperationException("Either Email or Phone must be provided");
-        }
 
         if (!string.IsNullOrWhiteSpace(request.Email) && request.Email != customer.Email)
         {
             var existingByEmail = await _customerRepo.GetByEmailAsync(request.Email, ct);
             if (existingByEmail is not null && existingByEmail.Id != id)
-            {
                 throw new InvalidOperationException($"Customer with email '{request.Email}' already exists");
-            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Phone) && request.Phone != customer.Phone)
         {
             var existingByPhone = await _customerRepo.GetByPhoneAsync(request.Phone, ct);
             if (existingByPhone is not null && existingByPhone.Id != id)
-            {
                 throw new InvalidOperationException($"Customer with phone '{request.Phone}' already exists");
-            }
         }
 
         customer.UpdateFrom(request);
         await _customerRepo.UpdateAsync(customer, ct);
-
+        await _cache.BumpTokenAsync(CacheKeys.CustomersToken, ct);
         return customer.ToDto();
     }
 }

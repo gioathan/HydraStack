@@ -8,24 +8,18 @@ public static class CacheKeys
 
     public static class Ttl
     {
-        /// <summary>TTL for venue list cache (10 minutes)</summary>
         public static readonly TimeSpan VenuesList = TimeSpan.FromMinutes(10);
-
-        /// <summary>TTL for individual venue details (20 minutes)</summary>
         public static readonly TimeSpan VenueDetail = TimeSpan.FromMinutes(20);
-
-        /// <summary>TTL for availability queries (5 minutes - changes frequently)</summary>
         public static readonly TimeSpan Availability = TimeSpan.FromMinutes(5);
-
-        /// <summary>TTL for booking details (15 minutes)</summary>
         public static readonly TimeSpan BookingDetail = TimeSpan.FromMinutes(15);
-
-        /// <summary>TTL for booking lists (10 minutes)</summary>
         public static readonly TimeSpan BookingsList = TimeSpan.FromMinutes(10);
-
-        /// <summary>TTL for venue types list and detail (30 minutes — changes very rarely)</summary>
         public static readonly TimeSpan VenueTypesList = TimeSpan.FromMinutes(30);
-
+        /// <summary>Short TTL — push token and profile can change.</summary>
+        public static readonly TimeSpan CustomerDetail = TimeSpan.FromMinutes(5);
+        /// <summary>Rating aggregates change only when a new rating is submitted.</summary>
+        public static readonly TimeSpan RatingAggregate = TimeSpan.FromMinutes(10);
+        /// <summary>Pending ratings change after bookings end; keep short.</summary>
+        public static readonly TimeSpan PendingRatings = TimeSpan.FromMinutes(2);
         /// <summary>
         /// TTL for Google Places photo URLs (23 hours).
         /// photo_reference values are stable for days; 23h avoids serving a stale
@@ -36,17 +30,12 @@ public static class CacheKeys
 
     public static class Jitter
     {
-        /// <summary>Jitter range for venue caches (±30 seconds)</summary>
         public static readonly TimeSpan Venues = TimeSpan.FromSeconds(30);
-
-        /// <summary>Jitter range for availability caches (±10 seconds)</summary>
         public static readonly TimeSpan Availability = TimeSpan.FromSeconds(10);
-
-        /// <summary>Jitter range for booking caches (±20 seconds)</summary>
         public static readonly TimeSpan Bookings = TimeSpan.FromSeconds(20);
-
-        /// <summary>Jitter range for venue type caches (±60 seconds)</summary>
         public static readonly TimeSpan VenueTypes = TimeSpan.FromSeconds(60);
+        public static readonly TimeSpan Customers = TimeSpan.FromSeconds(30);
+        public static readonly TimeSpan Ratings = TimeSpan.FromSeconds(15);
     }
 
     // ==========================================
@@ -57,6 +46,8 @@ public static class CacheKeys
     public static string AvailabilityToken => $"{Ns}:availability:ver";
     public static string BookingsToken => $"{Ns}:bookings:ver";
     public static string VenueTypesToken => $"{Ns}:venue-types:ver";
+    public static string CustomersToken => $"{Ns}:customers:ver";
+    public static string RatingsToken => $"{Ns}:ratings:ver";
 
     // ==========================================
     // VENUE CACHE KEYS
@@ -100,6 +91,24 @@ public static class CacheKeys
         if (!string.IsNullOrWhiteSpace(status)) parts.Add($"status:{status.ToLower()}");
         return string.Join(":", parts);
     }
+
+    // ==========================================
+    // CUSTOMER CACHE KEYS
+    // ==========================================
+
+    public static string CustomerDetail(Guid id, int version) => $"{Ns}:customers:v{version}:{id}";
+
+    // ==========================================
+    // RATING CACHE KEYS
+    // ==========================================
+
+    /// <summary>Per-venue rating aggregate, independently versioned from venue data.</summary>
+    public static string RatingAggregate(Guid venueId, int version)
+        => $"{Ns}:ratings:aggregate:v{version}:{venueId}";
+
+    /// <summary>Pending ratings list for a customer.</summary>
+    public static string PendingRatings(Guid customerId, int version)
+        => $"{Ns}:ratings:pending:v{version}:{customerId}";
 
     // ==========================================
     // GOOGLE PLACES CACHE KEYS
