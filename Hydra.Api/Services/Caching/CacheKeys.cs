@@ -23,6 +23,9 @@ public static class CacheKeys
         /// <summary>TTL for booking lists (10 minutes)</summary>
         public static readonly TimeSpan BookingsList = TimeSpan.FromMinutes(10);
 
+        /// <summary>TTL for venue types list and detail (30 minutes — changes very rarely)</summary>
+        public static readonly TimeSpan VenueTypesList = TimeSpan.FromMinutes(30);
+
         /// <summary>
         /// TTL for Google Places photo URLs (23 hours).
         /// photo_reference values are stable for days; 23h avoids serving a stale
@@ -41,6 +44,9 @@ public static class CacheKeys
 
         /// <summary>Jitter range for booking caches (±20 seconds)</summary>
         public static readonly TimeSpan Bookings = TimeSpan.FromSeconds(20);
+
+        /// <summary>Jitter range for venue type caches (±60 seconds)</summary>
+        public static readonly TimeSpan VenueTypes = TimeSpan.FromSeconds(60);
     }
 
     // ==========================================
@@ -50,6 +56,7 @@ public static class CacheKeys
     public static string VenuesToken => $"{Ns}:venues:ver";
     public static string AvailabilityToken => $"{Ns}:availability:ver";
     public static string BookingsToken => $"{Ns}:bookings:ver";
+    public static string VenueTypesToken => $"{Ns}:venue-types:ver";
 
     // ==========================================
     // VENUE CACHE KEYS
@@ -61,6 +68,16 @@ public static class CacheKeys
     public static string LocationsList(int version) => $"{Ns}:venues:locations:v{version}";
 
     public static string VenueDetail(Guid id, int version) => $"{Ns}:venues:v{version}:{id}";
+
+    // ==========================================
+    // VENUE TYPE CACHE KEYS
+    // ==========================================
+
+    public static string VenueTypesList(int page, int pageSize, int version)
+        => $"{Ns}:venue-types:list:v{version}:p{page}:s{pageSize}";
+
+    public static string VenueTypeDetail(Guid id, int version)
+        => $"{Ns}:venue-types:v{version}:{id}";
 
     // ==========================================
     // AVAILABILITY CACHE KEYS
@@ -88,11 +105,6 @@ public static class CacheKeys
     // GOOGLE PLACES CACHE KEYS
     // ==========================================
 
-    /// <summary>
-    /// Cache key for a resolved Google Places photo URL.
-    /// Keyed by place ID and maxWidth so different sizes don't collide.
-    /// Example: hb:gplaces:photo:ChIJ...:800
-    /// </summary>
     public static string GooglePlacesPhoto(string googlePlaceId, int maxWidth)
         => $"{Ns}:gplaces:photo:{googlePlaceId}:{maxWidth}";
 }
