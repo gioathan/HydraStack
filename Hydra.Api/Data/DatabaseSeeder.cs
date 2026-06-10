@@ -211,7 +211,8 @@ public class DatabaseSeeder
                     Location = seed.Location,
                     Latitude = seed.Latitude,
                     Longitude = seed.Longitude,
-                    BookingsEnabled = true
+                    BookingsEnabled = true,
+                    EventsEnabled = true
                 };
                 _context.Venues.Add(venue);
                 await _context.SaveChangesAsync(ct);

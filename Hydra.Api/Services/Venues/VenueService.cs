@@ -251,6 +251,16 @@ public class VenueService : IVenueService
         return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
     }
 
+    public async Task<VenueDto?> ToggleEventsAsync(Guid venueId, bool enabled, CancellationToken ct = default)
+    {
+        var venue = await _venueRepo.GetByIdAsync(venueId, ct);
+        if (venue is null) return null;
+        venue.EventsEnabled = enabled;
+        await _venueRepo.UpdateAsync(venue, ct);
+        await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
+        return venue.ToDto();
+    }
+
     public async Task<IReadOnlyList<VenuePricingItemDto>?> SetVenuePricingAsync(Guid venueId, SetVenuePricingRequest request, CancellationToken ct = default)
     {
         var venue = await _venueRepo.GetByIdAsync(venueId, ct);
