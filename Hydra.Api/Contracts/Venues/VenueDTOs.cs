@@ -16,6 +16,17 @@ public record VenueEventDto(
     IReadOnlyList<VenueEventPhotoDto> AdditionalPhotos,
     bool IsPast);
 
+public record EventListItemDto(
+    Guid Id,
+    Guid VenueId,
+    string VenueName,
+    string? VenueLocation,
+    string Title,
+    string? Description,
+    DateTime StartsAtUtc,
+    DateTime? EndsAtUtc,
+    string? MainPhotoUrl);
+
 public record CreateVenueEventRequest(
     string Title,
     DateTime StartsAtUtc,

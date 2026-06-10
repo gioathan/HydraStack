@@ -1,9 +1,11 @@
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 
 namespace Hydra.Api.Services.Venues;
 
 public interface IVenueEventService
 {
+    Task<PagedResult<EventListItemDto>> GetUpcomingPagedAsync(int page, int pageSize, string? location, CancellationToken ct = default);
     Task<IReadOnlyList<VenueEventDto>> GetEventsAsync(Guid venueId, bool includePast, CancellationToken ct = default);
     Task<VenueEventDto?> GetEventByIdAsync(Guid venueId, Guid eventId, CancellationToken ct = default);
     Task<(VenueEventDto? Result, string? Error)> CreateEventAsync(Guid venueId, CreateVenueEventRequest request, CancellationToken ct = default);

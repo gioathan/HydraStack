@@ -29,6 +29,30 @@ public class VenueEventRepository : IVenueEventRepository
             .ToListAsync(ct);
     }
 
+    public async Task<(List<VenueEvent> Items, int Total)> GetUpcomingPagedAsync(int skip, int take, string? location, CancellationToken ct = default)
+    {
+        var query = _context.VenueEvents
+            .Include(e => e.AdditionalPhotos)
+            .Include(e => e.Venue)
+            .Where(e =>
+                !e.ClosedAtUtc.HasValue &&
+                (!e.EndsAtUtc.HasValue || e.EndsAtUtc.Value >= DateTime.UtcNow) &&
+                e.StartsAtUtc >= DateTime.UtcNow &&
+                e.Venue.EventsEnabled);
+
+        if (!string.IsNullOrWhiteSpace(location))
+            query = query.Where(e => e.Venue.Location == location);
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(e => e.StartsAtUtc)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
     public async Task<VenueEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.VenueEvents

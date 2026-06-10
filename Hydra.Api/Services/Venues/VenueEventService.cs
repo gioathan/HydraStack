@@ -1,3 +1,4 @@
+using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Mapping;
 using Hydra.Api.Models;
@@ -15,6 +16,28 @@ public class VenueEventService : IVenueEventService
     {
         _eventRepo = eventRepo;
         _venueRepo = venueRepo;
+    }
+
+    public async Task<PagedResult<EventListItemDto>> GetUpcomingPagedAsync(int page, int pageSize, string? location, CancellationToken ct = default)
+    {
+        var safeSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (Math.Max(1, page) - 1) * safeSize;
+
+        var (items, total) = await _eventRepo.GetUpcomingPagedAsync(skip, safeSize, location, ct);
+
+        var dtos = items.Select(e => new EventListItemDto(
+            e.Id,
+            e.VenueId,
+            e.Venue.Name,
+            e.Venue.Location,
+            e.Title,
+            e.Description,
+            e.StartsAtUtc,
+            e.EndsAtUtc,
+            e.MainPhotoUrl
+        )).ToList();
+
+        return new PagedResult<EventListItemDto>(dtos, total, page, safeSize);
     }
 
     public async Task<IReadOnlyList<VenueEventDto>> GetEventsAsync(Guid venueId, bool includePast, CancellationToken ct = default)
