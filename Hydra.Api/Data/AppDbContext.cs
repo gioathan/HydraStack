@@ -16,6 +16,8 @@ namespace Hydra.Api.Data
         public virtual DbSet<VenuePhoto> VenuePhotos => Set<VenuePhoto>();
         public virtual DbSet<VenueRating> VenueRatings => Set<VenueRating>();
         public virtual DbSet<VenuePricingItem> VenuePricingItems => Set<VenuePricingItem>();
+        public virtual DbSet<VenueEvent> VenueEvents => Set<VenueEvent>();
+        public virtual DbSet<VenueEventPhoto> VenueEventPhotos => Set<VenueEventPhoto>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -88,6 +90,56 @@ namespace Hydra.Api.Data
                     .WithOne(pi => pi.Venue)
                     .HasForeignKey(pi => pi.VenueId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasMany(v => v.Events)
+                    .WithOne(e => e.Venue)
+                    .HasForeignKey(e => e.VenueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.Property(v => v.BookingsEnabled)
+                    .HasDefaultValue(false);
+
+                b.Property(v => v.EventsEnabled)
+                    .HasDefaultValue(false);
+            });
+
+            modelBuilder.Entity<VenueEvent>(b =>
+            {
+                b.HasKey(e => e.Id);
+
+                b.Property(e => e.Title)
+                    .IsRequired()
+                    .HasMaxLength(256);
+
+                b.Property(e => e.Description)
+                    .HasColumnType("text");
+
+                b.Property(e => e.MainPhotoUrl)
+                    .HasColumnType("text");
+
+                b.Property(e => e.StartsAtUtc)
+                    .IsRequired();
+
+                b.Property(e => e.CreatedAtUtc)
+                    .IsRequired();
+
+                b.HasMany(e => e.AdditionalPhotos)
+                    .WithOne(p => p.Event)
+                    .HasForeignKey(p => p.VenueEventId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasIndex(e => new { e.VenueId, e.StartsAtUtc });
+            });
+
+            modelBuilder.Entity<VenueEventPhoto>(b =>
+            {
+                b.HasKey(p => p.Id);
+
+                b.Property(p => p.Url)
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.HasIndex(p => new { p.VenueEventId, p.DisplayOrder });
             });
 
             modelBuilder.Entity<VenuePricingItem>(b =>

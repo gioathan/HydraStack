@@ -16,4 +16,6 @@ public interface IVenueService
     Task<BookingRulesDto?> GetBookingRulesAsync(Guid venueId, CancellationToken ct = default);
     Task<BookingRulesDto?> UpdateBookingRulesAsync(Guid venueId, UpdateBookingRulesRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<VenuePricingItemDto>?> SetVenuePricingAsync(Guid venueId, SetVenuePricingRequest request, CancellationToken ct = default);
+    Task<VenueDto?> ToggleBookingsAsync(Guid venueId, bool enabled, CancellationToken ct = default);
+    Task<VenueDto?> ToggleEventsAsync(Guid venueId, bool enabled, CancellationToken ct = default);
 }

@@ -15,6 +15,25 @@ public static class MappingExtensions
     public static VenuePricingItemDto ToDto(this VenuePricingItem item) =>
         new(item.Id, item.Category, item.Title, item.Subtitle, item.Price, item.DisplayOrder);
 
+    public static VenueEventPhotoDto ToDto(this VenueEventPhoto photo) =>
+        new(photo.Id, photo.Url, photo.DisplayOrder);
+
+    public static VenueEventDto ToDto(this VenueEvent e) =>
+        new(
+            e.Id,
+            e.VenueId,
+            e.Title,
+            e.Description,
+            e.StartsAtUtc,
+            e.EndsAtUtc,
+            e.ClosedAtUtc,
+            e.MainPhotoUrl,
+            e.AdditionalPhotos
+                .OrderBy(p => p.DisplayOrder)
+                .Select(p => p.ToDto())
+                .ToList(),
+            e.IsPast);
+
     public static VenueDto ToDto(
         this Venue venue,
         IReadOnlyList<VenuePhotoDto>? resolvedPhotos = null,
@@ -43,7 +62,9 @@ public static class MappingExtensions
             venue.Longitude,
             venue.Latitude.HasValue && venue.Longitude.HasValue
                 ? $"https://maps.google.com/?q={venue.Latitude},{venue.Longitude}"
-                : null);
+                : null,
+            venue.BookingsEnabled,
+            venue.EventsEnabled);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()

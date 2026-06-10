@@ -185,11 +185,21 @@ namespace Hydra.Api.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<bool>("BookingsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<bool>("EventsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
@@ -218,6 +228,68 @@ namespace Hydra.Api.Migrations
                     b.HasIndex("VenueTypeId");
 
                     b.ToTable("Venues");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenueEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MainPhotoUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StartsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("VenueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId", "StartsAtUtc");
+
+                    b.ToTable("VenueEvents");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenueEventPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("VenueEventId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueEventId", "DisplayOrder");
+
+                    b.ToTable("VenueEventPhotos");
                 });
 
             modelBuilder.Entity("Hydra.Api.Models.VenuePhoto", b =>
@@ -375,6 +447,28 @@ namespace Hydra.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Hydra.Api.Models.VenueEvent", b =>
+                {
+                    b.HasOne("Hydra.Api.Models.Venue", "Venue")
+                        .WithMany("Events")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenueEventPhoto", b =>
+                {
+                    b.HasOne("Hydra.Api.Models.VenueEvent", "Event")
+                        .WithMany("AdditionalPhotos")
+                        .HasForeignKey("VenueEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
             modelBuilder.Entity("Hydra.Api.Models.Venue", b =>
                 {
                     b.HasOne("Hydra.Api.Models.User", "User")
@@ -452,11 +546,18 @@ namespace Hydra.Api.Migrations
                 {
                     b.Navigation("Bookings");
 
+                    b.Navigation("Events");
+
                     b.Navigation("Photos");
 
                     b.Navigation("PricingItems");
 
                     b.Navigation("Rules");
+                });
+
+            modelBuilder.Entity("Hydra.Api.Models.VenueEvent", b =>
+                {
+                    b.Navigation("AdditionalPhotos");
                 });
 
             modelBuilder.Entity("Hydra.Api.Models.VenueType", b =>

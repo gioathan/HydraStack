@@ -95,6 +95,8 @@ try
     builder.Services.AddScoped<IVenueTypeService, VenueTypeService>();
     builder.Services.AddScoped<IRatingRepository, RatingRepository>();
     builder.Services.AddScoped<IRatingService, RatingService>();
+    builder.Services.AddScoped<Repositories.VenueEvents.IVenueEventRepository, Repositories.VenueEvents.VenueEventRepository>();
+    builder.Services.AddScoped<IVenueEventService, VenueEventService>();
 
     builder.Services.Configure<GooglePlacesSettings>(builder.Configuration.GetSection("GooglePlaces"));
     builder.Services.AddHttpClient("GooglePlaces");

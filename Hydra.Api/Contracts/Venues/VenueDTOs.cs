@@ -2,6 +2,40 @@ namespace Hydra.Api.Contracts.Venues;
 
 public record VenuePhotoDto(Guid Id, string GooglePlaceId, int DisplayOrder, string? PhotoUrl);
 
+public record VenueEventPhotoDto(Guid Id, string Url, int DisplayOrder);
+
+public record VenueEventDto(
+    Guid Id,
+    Guid VenueId,
+    string Title,
+    string? Description,
+    DateTime StartsAtUtc,
+    DateTime? EndsAtUtc,
+    DateTime? ClosedAtUtc,
+    string? MainPhotoUrl,
+    IReadOnlyList<VenueEventPhotoDto> AdditionalPhotos,
+    bool IsPast);
+
+public record CreateVenueEventRequest(
+    string Title,
+    DateTime StartsAtUtc,
+    string? Description = null,
+    DateTime? EndsAtUtc = null,
+    string? MainPhotoUrl = null);
+
+public record UpdateVenueEventRequest(
+    string Title,
+    DateTime StartsAtUtc,
+    string? Description = null,
+    DateTime? EndsAtUtc = null,
+    string? MainPhotoUrl = null);
+
+public record AddEventPhotoRequest(string Url, int DisplayOrder);
+
+public record ToggleBookingsRequest(bool Enabled);
+
+public record ToggleEventsRequest(bool Enabled);
+
 public record VenuePricingItemDto(Guid Id, string? Category, string Title, string? Subtitle, decimal Price, int DisplayOrder);
 
 public record PricingItemRequest(string Title, string? Subtitle, decimal Price, int DisplayOrder, string? Category = null);
@@ -23,7 +57,9 @@ public record VenueDto(
     string? Location,
     double? Latitude,
     double? Longitude,
-    string? GoogleMapsUrl);
+    string? GoogleMapsUrl,
+    bool BookingsEnabled,
+    bool EventsEnabled);
 
 public record CreateVenueRequest(
     string Name,

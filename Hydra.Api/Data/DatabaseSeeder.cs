@@ -220,7 +220,9 @@ public class DatabaseSeeder
                     Capacity = seed.Capacity,
                     Location = seed.Location,
                     Latitude = seed.Latitude,
-                    Longitude = seed.Longitude
+                    Longitude = seed.Longitude,
+                    BookingsEnabled = true,
+                    EventsEnabled = true
                 };
                 _context.Venues.Add(venue);
                 await _context.SaveChangesAsync(ct);
