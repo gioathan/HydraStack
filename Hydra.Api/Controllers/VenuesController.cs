@@ -229,6 +229,38 @@ public class VenuesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/bookings-enabled")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<VenueDto>> ToggleBookings(Guid id, [FromBody] ToggleBookingsRequest request, CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var existing = await _venueService.GetVenueByIdAsync(id, ct);
+            if (existing is null) return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (existing.UserId != User.GetUserId()) return Forbid();
+        }
+
+        var venue = await _venueService.ToggleBookingsAsync(id, request.Enabled, ct);
+        if (venue is null) return NotFound(new { message = $"Venue with ID {id} not found" });
+        return Ok(venue);
+    }
+
+    [HttpPatch("{id:guid}/events-enabled")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<VenueDto>> ToggleEvents(Guid id, [FromBody] ToggleEventsRequest request, CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var existing = await _venueService.GetVenueByIdAsync(id, ct);
+            if (existing is null) return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (existing.UserId != User.GetUserId()) return Forbid();
+        }
+
+        var venue = await _venueService.ToggleEventsAsync(id, request.Enabled, ct);
+        if (venue is null) return NotFound(new { message = $"Venue with ID {id} not found" });
+        return Ok(venue);
+    }
+
     [HttpPut("{id:guid}/photos/order")]
     [Authorize(Roles = "SuperAdmin,Admin")]
     public async Task<ActionResult<IReadOnlyList<VenuePhotoDto>>> ReorderPhotos(

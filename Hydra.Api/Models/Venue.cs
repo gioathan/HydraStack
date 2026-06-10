@@ -15,9 +15,11 @@ public class Venue
     public double? Longitude { get; set; }
     public string? Location { get; set; }
     public bool BookingsEnabled { get; set; } = false;
+    public bool EventsEnabled { get; set; } = false;
 
     public BookingRules? Rules { get; set; }
     public ICollection<VenuePhoto> Photos { get; set; } = new List<VenuePhoto>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     public ICollection<VenuePricingItem> PricingItems { get; set; } = new List<VenuePricingItem>();
+    public ICollection<VenueEvent> Events { get; set; } = new List<VenueEvent>();
 }
