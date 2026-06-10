@@ -1,6 +1,5 @@
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
-using Microsoft.AspNetCore.Http;
 
 namespace Hydra.Api.Services.Venues;
 
@@ -11,7 +10,8 @@ public interface IVenueService
     Task<VenueDto?> GetVenueByIdAsync(Guid id, CancellationToken ct = default);
     Task<VenueDto> CreateVenueAsync(CreateVenueRequest request, CancellationToken ct = default);
     Task<VenueDto?> UpdateVenueAsync(Guid id, UpdateVenueRequest request, CancellationToken ct = default);
-    Task<VenuePhotoDto?> AddPhotoAsync(Guid venueId, IFormFile file, int displayOrder, CancellationToken ct = default);
+    Task<VenueDto?> ToggleBookingsAsync(Guid venueId, bool enabled, CancellationToken ct = default);
+    Task<VenuePhotoDto?> AddPhotoAsync(Guid venueId, AddVenuePhotoRequest request, CancellationToken ct = default);
     Task<bool> DeletePhotoAsync(Guid venueId, Guid photoId, CancellationToken ct = default);
     Task<IReadOnlyList<VenuePhotoDto>?> ReorderPhotosAsync(Guid venueId, ReorderVenuePhotosRequest request, CancellationToken ct = default);
     Task<BookingRulesDto?> GetBookingRulesAsync(Guid venueId, CancellationToken ct = default);

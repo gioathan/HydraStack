@@ -1,6 +1,6 @@
 namespace Hydra.Api.Contracts.Venues;
 
-public record VenuePhotoDto(Guid Id, string Url, int DisplayOrder);
+public record VenuePhotoDto(Guid Id, string GooglePlaceId, int DisplayOrder, string? PhotoUrl);
 
 public record VenuePricingItemDto(Guid Id, string? Category, string Title, string? Subtitle, decimal Price, int DisplayOrder);
 
@@ -23,7 +23,8 @@ public record VenueDto(
     string? Location,
     double? Latitude,
     double? Longitude,
-    string? GoogleMapsUrl);
+    string? GoogleMapsUrl,
+    bool BookingsEnabled);
 
 public record CreateVenueRequest(
     string Name,
@@ -55,6 +56,10 @@ public record UpdateBookingRulesRequest(
     int OpenHour,
     int CloseHour);
 
+public record AddVenuePhotoRequest(string GooglePlaceId, int DisplayOrder);
+
 public record ReorderVenuePhotosRequest(IReadOnlyList<PhotoOrderItem> Items);
 
 public record PhotoOrderItem(Guid PhotoId, int DisplayOrder);
+
+public record ToggleBookingsRequest(bool Enabled);
