@@ -122,6 +122,9 @@ public class BookingService : IBookingService
         if (venue is null)
             throw new InvalidOperationException($"Venue with ID {request.VenueId} not found");
 
+        if (!venue.BookingsEnabled)
+            throw new InvalidOperationException("This venue does not accept bookings.");
+
         var customer = await _customerRepo.GetByIdAsync(request.CustomerId, ct);
         if (customer is null)
             throw new InvalidOperationException($"Customer with ID {request.CustomerId} not found");
@@ -291,6 +294,17 @@ public class BookingService : IBookingService
                         partySize,
                         false,
                         "Venue not found",
+                        new List<TimeSlot>());
+                }
+
+                if (!venue.BookingsEnabled)
+                {
+                    return new AvailabilityDto(
+                        venueId,
+                        date,
+                        partySize,
+                        false,
+                        "This venue does not accept bookings.",
                         new List<TimeSlot>());
                 }
 

@@ -185,6 +185,11 @@ namespace Hydra.Api.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<bool>("BookingsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("Capacity")
                         .HasColumnType("integer");
 
@@ -229,9 +234,10 @@ namespace Hydra.Api.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Url")
+                    b.Property<string>("GooglePlaceId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<Guid>("VenueId")
                         .HasColumnType("uuid");

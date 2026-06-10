@@ -79,13 +79,34 @@ public class VenuesController : ControllerBase
         return Ok(venue);
     }
 
+    [HttpPatch("{id:guid}/bookings-enabled")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<ActionResult<VenueDto>> ToggleBookings(
+        Guid id,
+        [FromBody] ToggleBookingsRequest request,
+        CancellationToken ct)
+    {
+        if (User.GetRole() == "Admin")
+        {
+            var existing = await _venueService.GetVenueByIdAsync(id, ct);
+            if (existing is null)
+                return NotFound(new { message = $"Venue with ID {id} not found" });
+            if (existing.UserId != User.GetUserId())
+                return Forbid();
+        }
+
+        var venue = await _venueService.ToggleBookingsAsync(id, request.Enabled, ct);
+        if (venue is null)
+            return NotFound(new { message = $"Venue with ID {id} not found" });
+
+        return Ok(venue);
+    }
+
     [HttpPost("{id:guid}/photos")]
     [Authorize(Roles = "SuperAdmin,Admin")]
-    [Consumes("multipart/form-data")]
     public async Task<ActionResult<VenuePhotoDto>> AddPhoto(
         Guid id,
-        IFormFile file,
-        [FromForm] int displayOrder,
+        [FromBody] AddVenuePhotoRequest request,
         CancellationToken ct)
     {
         if (User.GetRole() == "Admin")
@@ -97,10 +118,7 @@ public class VenuesController : ControllerBase
                 return Forbid();
         }
 
-        if (file is null || file.Length == 0)
-            return BadRequest(new { message = "A photo file is required." });
-
-        var photo = await _venueService.AddPhotoAsync(id, file, displayOrder, ct);
+        var photo = await _venueService.AddPhotoAsync(id, request, ct);
         if (photo is null)
             return NotFound(new { message = $"Venue with ID {id} not found" });
 

@@ -9,8 +9,8 @@ namespace Hydra.Api.Mapping;
 
 public static class MappingExtensions
 {
-    public static VenuePhotoDto ToDto(this VenuePhoto photo) =>
-        new(photo.Id, photo.Url, photo.DisplayOrder);
+    public static VenuePhotoDto ToDto(this VenuePhoto photo, string? photoUrl = null) =>
+        new(photo.Id, photo.GooglePlaceId, photo.DisplayOrder, photoUrl);
 
     public static VenuePricingItemDto ToDto(this VenuePricingItem item) =>
         new(item.Id, item.Category, item.Title, item.Subtitle, item.Price, item.DisplayOrder);
@@ -43,7 +43,8 @@ public static class MappingExtensions
             venue.Longitude,
             venue.Latitude.HasValue && venue.Longitude.HasValue
                 ? $"https://maps.google.com/?q={venue.Latitude},{venue.Longitude}"
-                : null);
+                : null,
+            venue.BookingsEnabled);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()

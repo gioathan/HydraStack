@@ -25,8 +25,6 @@ public class DatabaseSeeder
         _logger.LogInformation("Database seed complete.");
     }
 
-    // ── STEP 2 ──────────────────────────────────────────────────────────────────────
-
     private async Task SeedVenueTypesAsync(CancellationToken ct)
     {
         var types = new[]
@@ -64,8 +62,6 @@ public class DatabaseSeeder
         }
     }
 
-    // ── STEP 3 ──────────────────────────────────────────────────────────────────────
-
     private async Task SeedSuperAdminAsync(CancellationToken ct)
     {
         const string email = "superadmin@hydra.app";
@@ -93,10 +89,6 @@ public class DatabaseSeeder
         }
     }
 
-    // ── STEP 4 ──────────────────────────────────────────────────────────────────────
-
-    // For dev venues, photo URLs use the "picsum:" prefix so the seeder stores
-    // placeholder URLs. In production, real R2 URLs are stored via the upload endpoint.
     private async Task SeedVenuesAsync(CancellationToken ct)
     {
         var venueData = new[]
@@ -107,7 +99,7 @@ public class DatabaseSeeder
                 Address:       "Miaouli 12, Hydra",
                 Capacity:      45,
                 VenueTypeName: "Restaurant",
-                PhotoUrls:     ["https://picsum.photos/seed/sunset-terrace/800/600", "https://picsum.photos/seed/sunset-terrace-2/800/600", "https://picsum.photos/seed/sunset-terrace-3/800/600"],
+                PhotoSeeds:    ["picsum:sunset-terrace", "picsum:sunset-terrace-2", "picsum:sunset-terrace-3"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 12, CloseHour: 23,
                 Location:      "Hydra", Latitude: 37.3490, Longitude: 23.4735),
 
@@ -117,7 +109,7 @@ public class DatabaseSeeder
                 Address:       "Tombazi 3, Hydra",
                 Capacity:      30,
                 VenueTypeName: "Cafe",
-                PhotoUrls:     ["https://picsum.photos/seed/harbor-view-cafe/800/600", "https://picsum.photos/seed/harbor-view-cafe-2/800/600"],
+                PhotoSeeds:    ["picsum:harbor-view-cafe", "picsum:harbor-view-cafe-2"],
                 SlotMinutes:   60,  AutoConfirm: true,  OpenHour: 8,  CloseHour: 20,
                 Location:      "Hydra", Latitude: 37.3488, Longitude: 23.4725),
 
@@ -127,7 +119,7 @@ public class DatabaseSeeder
                 Address:       "Lignou 7, Hydra",
                 Capacity:      50,
                 VenueTypeName: "Bar",
-                PhotoUrls:     ["https://picsum.photos/seed/the-blue-bar/800/600", "https://picsum.photos/seed/the-blue-bar-2/800/600", "https://picsum.photos/seed/the-blue-bar-3/800/600"],
+                PhotoSeeds:    ["picsum:the-blue-bar", "picsum:the-blue-bar-2", "picsum:the-blue-bar-3"],
                 SlotMinutes:   120, AutoConfirm: false, OpenHour: 18, CloseHour: 2,
                 Location:      "Hydra", Latitude: 37.3483, Longitude: 23.4722),
 
@@ -137,7 +129,7 @@ public class DatabaseSeeder
                 Address:       "Mandraki Beach, Hydra",
                 Capacity:      60,
                 VenueTypeName: "Beach Bar",
-                PhotoUrls:     ["https://picsum.photos/seed/crystal-beach-bar/800/600", "https://picsum.photos/seed/crystal-beach-bar-2/800/600"],
+                PhotoSeeds:    ["picsum:crystal-beach-bar", "picsum:crystal-beach-bar-2"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 10, CloseHour: 20,
                 Location:      "Hydra", Latitude: 37.3530, Longitude: 23.4820),
 
@@ -147,7 +139,7 @@ public class DatabaseSeeder
                 Address:       "Main Port, Hydra",
                 Capacity:      12,
                 VenueTypeName: "Boat Trip",
-                PhotoUrls:     ["https://picsum.photos/seed/poseidon-boat-trips/800/600", "https://picsum.photos/seed/poseidon-boat-trips-2/800/600"],
+                PhotoSeeds:    ["picsum:poseidon-boat-trips", "picsum:poseidon-boat-trips-2"],
                 SlotMinutes:   180, AutoConfirm: false, OpenHour: 9,  CloseHour: 18,
                 Location:      "Hydra", Latitude: 37.3493, Longitude: 23.4728),
 
@@ -157,7 +149,7 @@ public class DatabaseSeeder
                 Address:       "Votsi 15, Hydra",
                 Capacity:      35,
                 VenueTypeName: "Restaurant",
-                PhotoUrls:     ["https://picsum.photos/seed/acropolis-restaurant/800/600", "https://picsum.photos/seed/acropolis-restaurant-2/800/600", "https://picsum.photos/seed/acropolis-restaurant-3/800/600"],
+                PhotoSeeds:    ["picsum:acropolis-restaurant", "picsum:acropolis-restaurant-2", "picsum:acropolis-restaurant-3"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 13, CloseHour: 23,
                 Location:      "Hydra", Latitude: 37.3478, Longitude: 23.4745),
 
@@ -167,7 +159,7 @@ public class DatabaseSeeder
                 Address:       "Spilia Beach, Hydra",
                 Capacity:      40,
                 VenueTypeName: "Bar",
-                PhotoUrls:     ["https://picsum.photos/seed/aegean-breeze-bar/800/600", "https://picsum.photos/seed/aegean-breeze-bar-2/800/600"],
+                PhotoSeeds:    ["picsum:aegean-breeze-bar", "picsum:aegean-breeze-bar-2"],
                 SlotMinutes:   60,  AutoConfirm: true,  OpenHour: 17, CloseHour: 1,
                 Location:      "Hydra", Latitude: 37.3495, Longitude: 23.4705),
 
@@ -177,7 +169,7 @@ public class DatabaseSeeder
                 Address:       "Tombazi 22, Hydra",
                 Capacity:      20,
                 VenueTypeName: "Cafe",
-                PhotoUrls:     ["https://picsum.photos/seed/hydra-coffee-house/800/600", "https://picsum.photos/seed/hydra-coffee-house-2/800/600"],
+                PhotoSeeds:    ["picsum:hydra-coffee-house", "picsum:hydra-coffee-house-2"],
                 SlotMinutes:   45,  AutoConfirm: true,  OpenHour: 7,  CloseHour: 19,
                 Location:      "Hydra", Latitude: 37.3486, Longitude: 23.4729)
         };
@@ -218,17 +210,18 @@ public class DatabaseSeeder
                     Capacity = seed.Capacity,
                     Location = seed.Location,
                     Latitude = seed.Latitude,
-                    Longitude = seed.Longitude
+                    Longitude = seed.Longitude,
+                    BookingsEnabled = true
                 };
                 _context.Venues.Add(venue);
                 await _context.SaveChangesAsync(ct);
 
-                for (var i = 0; i < seed.PhotoUrls.Length; i++)
+                for (var i = 0; i < seed.PhotoSeeds.Length; i++)
                 {
                     _context.VenuePhotos.Add(new VenuePhoto
                     {
                         VenueId = venue.Id,
-                        Url = seed.PhotoUrls[i],
+                        GooglePlaceId = seed.PhotoSeeds[i],
                         DisplayOrder = i
                     });
                 }
@@ -259,7 +252,7 @@ public class DatabaseSeeder
         string Address,
         int Capacity,
         string VenueTypeName,
-        string[] PhotoUrls,
+        string[] PhotoSeeds,
         int SlotMinutes,
         bool AutoConfirm,
         int OpenHour,
@@ -267,8 +260,6 @@ public class DatabaseSeeder
         string? Location = null,
         double? Latitude = null,
         double? Longitude = null);
-
-    // ── STEP 5 ──────────────────────────────────────────────────────────────────────
 
     private async Task SeedCustomersAsync(CancellationToken ct)
     {
@@ -318,15 +309,12 @@ public class DatabaseSeeder
 
     private record CustomerSeed(string Email, string Password, string Name, string Phone, string Locale);
 
-    // ── STEP 6 ──────────────────────────────────────────────────────────────────────
-
     private async Task SeedBookingsAsync(CancellationToken ct)
     {
         var now = DateTime.UtcNow;
 
         var bookingSpecs = new[]
         {
-            // Giorgos
             new BookingSpec("giorgos@test.com", "Sunset Terrace",
                 StartUtc: now.Date.AddDays(3).AddHours(19),
                 Duration: 90, PartySize: 2, Status: BookingStatus.Confirmed),
@@ -339,7 +327,6 @@ public class DatabaseSeeder
                 StartUtc: now.Date.AddDays(-30).AddHours(10),
                 Duration: 60, PartySize: 1, Status: BookingStatus.Confirmed),
 
-            // Sarah
             new BookingSpec("sarah@test.com", "Poseidon Boat Trips",
                 StartUtc: now.Date.AddDays(2).AddHours(10),
                 Duration: 180, PartySize: 6, Status: BookingStatus.Pending),
@@ -348,7 +335,6 @@ public class DatabaseSeeder
                 StartUtc: now.Date.AddDays(-14).AddHours(13),
                 Duration: 90, PartySize: 3, Status: BookingStatus.Cancelled),
 
-            // Marco
             new BookingSpec("marco@test.com", "Acropolis Restaurant",
                 StartUtc: now.Date.AddDays(5).AddHours(20).AddMinutes(30),
                 Duration: 90, PartySize: 2, Status: BookingStatus.Confirmed),
@@ -405,9 +391,7 @@ public class DatabaseSeeder
                         }
 
                         var isPast = spec.StartUtc < now;
-                        var createdAt = isPast
-                            ? spec.StartUtc.AddDays(-3)
-                            : now;
+                        var createdAt = isPast ? spec.StartUtc.AddDays(-3) : now;
 
                         _context.Bookings.Add(new Booking
                         {
@@ -428,8 +412,7 @@ public class DatabaseSeeder
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex,
-                            "Failed to seed booking for {Customer} @ {Venue}", email, spec.VenueName);
+                        _logger.LogError(ex, "Failed to seed booking for {Customer} @ {Venue}", email, spec.VenueName);
                     }
                 }
             }

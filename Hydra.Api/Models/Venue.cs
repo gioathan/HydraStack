@@ -1,4 +1,4 @@
-﻿namespace Hydra.Api.Models;
+namespace Hydra.Api.Models;
 
 public class Venue
 {
@@ -14,6 +14,7 @@ public class Venue
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? Location { get; set; }
+    public bool BookingsEnabled { get; set; } = false;
 
     public BookingRules? Rules { get; set; }
     public ICollection<VenuePhoto> Photos { get; set; } = new List<VenuePhoto>();
