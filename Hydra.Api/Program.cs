@@ -19,6 +19,7 @@ using Hydra.Api.Repositories.VenueTypes;
 using Hydra.Api.Services.VenueTypes;
 using Hydra.Api.Repositories.Ratings;
 using Hydra.Api.Services.Ratings;
+using Hydra.Api.Repositories.VenueEvents;
 using Serilog;
 using Serilog.Events;
 using Hydra.Api.Auth;
@@ -95,7 +96,7 @@ try
     builder.Services.AddScoped<IVenueTypeService, VenueTypeService>();
     builder.Services.AddScoped<IRatingRepository, RatingRepository>();
     builder.Services.AddScoped<IRatingService, RatingService>();
-    builder.Services.AddScoped<Repositories.VenueEvents.IVenueEventRepository, Repositories.VenueEvents.VenueEventRepository>();
+    builder.Services.AddScoped<IVenueEventRepository, VenueEventRepository>();
     builder.Services.AddScoped<IVenueEventService, VenueEventService>();
 
     builder.Services.Configure<GooglePlacesSettings>(builder.Configuration.GetSection("GooglePlaces"));
