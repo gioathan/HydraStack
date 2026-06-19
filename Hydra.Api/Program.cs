@@ -36,6 +36,7 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Minio;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
