@@ -18,14 +18,20 @@ public class CloudflareR2Service : IStorageService
 
     public async Task<string> UploadAsync(Stream stream, string key, string contentType, CancellationToken ct = default)
     {
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms, ct);
+        ms.Position = 0;
+
         var request = new PutObjectRequest
         {
             BucketName = _settings.BucketName,
             Key = key,
-            InputStream = stream,
+            InputStream = ms,
             ContentType = contentType,
-            DisablePayloadSigning = true
+            DisablePayloadSigning = true,
+            UseChunkEncoding = false,
         };
+        request.Headers.ContentLength = ms.Length;
 
         await _s3.PutObjectAsync(request, ct);
         return $"{_settings.PublicDomain.TrimEnd('/')}/{key}";
