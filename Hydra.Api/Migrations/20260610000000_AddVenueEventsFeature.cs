@@ -12,13 +12,6 @@ namespace Hydra.Api.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
-                name: "BookingsEnabled",
-                table: "Venues",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
-
-            migrationBuilder.AddColumn<bool>(
                 name: "EventsEnabled",
                 table: "Venues",
                 type: "boolean",
@@ -87,7 +80,6 @@ namespace Hydra.Api.Migrations
             migrationBuilder.DropTable(name: "VenueEventPhotos");
             migrationBuilder.DropTable(name: "VenueEvents");
 
-            migrationBuilder.DropColumn(name: "BookingsEnabled", table: "Venues");
             migrationBuilder.DropColumn(name: "EventsEnabled", table: "Venues");
         }
     }
