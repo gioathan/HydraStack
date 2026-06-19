@@ -6,5 +6,6 @@ public class VenuePhoto
     public Guid VenueId { get; set; }
     public Venue Venue { get; set; } = default!;
     public string GooglePlaceId { get; set; } = default!;
+    public string? Url { get; set; }
     public int DisplayOrder { get; set; }
 }

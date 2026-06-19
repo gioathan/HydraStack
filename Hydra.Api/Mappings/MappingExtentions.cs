@@ -9,8 +9,8 @@ namespace Hydra.Api.Mapping;
 
 public static class MappingExtensions
 {
-    public static VenuePhotoDto ToDto(this VenuePhoto photo, string? photoUrl = null) =>
-        new(photo.Id, photo.GooglePlaceId, photo.DisplayOrder, photoUrl);
+    public static VenuePhotoDto ToDto(this VenuePhoto photo, string? resolvedUrl = null) =>
+        new(photo.Id, resolvedUrl ?? photo.Url, photo.DisplayOrder);
 
     public static VenuePricingItemDto ToDto(this VenuePricingItem item) =>
         new(item.Id, item.Category, item.Title, item.Subtitle, item.Price, item.DisplayOrder);

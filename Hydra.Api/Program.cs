@@ -105,6 +105,23 @@ try
 
     builder.Services.Configure<GoogleAuthSettings>(builder.Configuration.GetSection("GoogleAuth"));
 
+    // Cloudflare R2 storage
+    builder.Services.Configure<Hydra.Api.Configuration.CloudflareR2Settings>(
+        builder.Configuration.GetSection("CloudflareR2"));
+
+    builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(sp =>
+    {
+        var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Hydra.Api.Configuration.CloudflareR2Settings>>().Value;
+        var s3Config = new Amazon.S3.AmazonS3Config
+        {
+            ServiceURL = $"https://{settings.AccountId}.r2.cloudflarestorage.com",
+            ForcePathStyle = true,
+        };
+        return new Amazon.S3.AmazonS3Client(settings.AccessKeyId, settings.SecretAccessKey, s3Config);
+    });
+
+    builder.Services.AddScoped<Hydra.Api.Services.Storage.IStorageService, Hydra.Api.Services.Storage.CloudflareR2Service>();
+
     builder.Services.AddHttpClient("Expo", client =>
     {
         client.BaseAddress = new Uri("https://exp.host");
