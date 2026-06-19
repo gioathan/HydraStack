@@ -109,16 +109,15 @@ try
     builder.Services.Configure<Hydra.Api.Configuration.CloudflareR2Settings>(
         builder.Configuration.GetSection("CloudflareR2"));
 
-    builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(sp =>
+    builder.Services.AddSingleton<Minio.IMinioClient>(sp =>
     {
         var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Hydra.Api.Configuration.CloudflareR2Settings>>().Value;
-        var s3Config = new Amazon.S3.AmazonS3Config
-        {
-            ServiceURL = $"https://{settings.AccountId}.r2.cloudflarestorage.com",
-            ForcePathStyle = true,
-            AuthenticationRegion = "auto",
-        };
-        return new Amazon.S3.AmazonS3Client(settings.AccessKeyId, settings.SecretAccessKey, s3Config);
+        return new Minio.MinioClient()
+            .WithEndpoint($"{settings.AccountId}.r2.cloudflarestorage.com")
+            .WithCredentials(settings.AccessKeyId, settings.SecretAccessKey)
+            .WithSSL(true)
+            .WithRegion("auto")
+            .Build();
     });
 
     builder.Services.AddScoped<Hydra.Api.Services.Storage.IStorageService, Hydra.Api.Services.Storage.CloudflareR2Service>();
