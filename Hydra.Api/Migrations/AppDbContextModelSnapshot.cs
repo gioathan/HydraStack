@@ -306,6 +306,9 @@ namespace Hydra.Api.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<string>("Url")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("VenueId")
                         .HasColumnType("uuid");
 
