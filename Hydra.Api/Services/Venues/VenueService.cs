@@ -174,15 +174,15 @@ public class VenueService : IVenueService
         var photo = new VenuePhoto
         {
             VenueId = venueId,
-            GooglePlaceId = request.GooglePlaceId,
+            GooglePlaceId = "",
+            Url = request.Url,
             DisplayOrder = request.DisplayOrder
         };
 
         await _photoRepo.AddAsync(photo, ct);
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
 
-        var url = await _googlePlacesService.GetPhotoUrlAsync(photo.GooglePlaceId, ct: ct);
-        return photo.ToDto(url);
+        return photo.ToDto();
     }
 
     public async Task<bool> DeletePhotoAsync(Guid venueId, Guid photoId, CancellationToken ct = default)
