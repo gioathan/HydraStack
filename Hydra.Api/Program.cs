@@ -1,4 +1,5 @@
 using Hydra.Api.Data;
+using Minio;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
