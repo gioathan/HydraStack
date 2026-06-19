@@ -32,6 +32,11 @@ services:
       GooglePlaces__ApiKey: "${GOOGLE_PLACES_API_KEY}"
       Resend__ApiKey: "${RESEND_API_KEY}"
       GoogleAuth__ClientId: "${GOOGLEAUTH__CLIENTID}"
+      CloudflareR2__AccountId: "${CLOUDFLARER2__ACCOUNTID}"
+      CloudflareR2__AccessKeyId: "${CLOUDFLARER2__ACCESSKEYID}"
+      CloudflareR2__SecretAccessKey: "${CLOUDFLARER2__SECRETACCESSKEY}"
+      CloudflareR2__BucketName: "${CLOUDFLARER2__BUCKETNAME}"
+      CloudflareR2__PublicDomain: "${CLOUDFLARER2__PUBLICDOMAIN}"
       ASPNETCORE_URLS: "http://+:8080"
     depends_on:
       postgres:
