@@ -1,18 +1,18 @@
-using Amazon.S3;
-using Amazon.S3.Model;
 using Hydra.Api.Configuration;
 using Microsoft.Extensions.Options;
+using Minio;
+using Minio.DataModel.Args;
 
 namespace Hydra.Api.Services.Storage;
 
 public class CloudflareR2Service : IStorageService
 {
-    private readonly IAmazonS3 _s3;
+    private readonly IMinioClient _minio;
     private readonly CloudflareR2Settings _settings;
 
-    public CloudflareR2Service(IAmazonS3 s3, IOptions<CloudflareR2Settings> settings)
+    public CloudflareR2Service(IMinioClient minio, IOptions<CloudflareR2Settings> settings)
     {
-        _s3 = s3;
+        _minio = minio;
         _settings = settings.Value;
     }
 
@@ -22,23 +22,23 @@ public class CloudflareR2Service : IStorageService
         await stream.CopyToAsync(ms, ct);
         ms.Position = 0;
 
-        var request = new PutObjectRequest
-        {
-            BucketName = _settings.BucketName,
-            Key = key,
-            InputStream = ms,
-            ContentType = contentType,
-            DisablePayloadSigning = true,
-            UseChunkEncoding = false,
-        };
-        request.Headers.ContentLength = ms.Length;
+        var args = new PutObjectArgs()
+            .WithBucket(_settings.BucketName)
+            .WithObject(key)
+            .WithStreamData(ms)
+            .WithObjectSize(ms.Length)
+            .WithContentType(contentType);
 
-        await _s3.PutObjectAsync(request, ct);
+        await _minio.PutObjectAsync(args, ct);
         return $"{_settings.PublicDomain.TrimEnd('/')}/{key}";
     }
 
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
-        await _s3.DeleteObjectAsync(_settings.BucketName, key, ct);
+        var args = new RemoveObjectArgs()
+            .WithBucket(_settings.BucketName)
+            .WithObject(key);
+
+        await _minio.RemoveObjectAsync(args, ct);
     }
 }
