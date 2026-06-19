@@ -68,7 +68,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "SuperAdmin,Admin,Customer")]
     public async Task<ActionResult> DeleteUser(Guid id, CancellationToken ct)
     {
-        if (User.GetUserId() != id)
+        if (User.GetRole() != "SuperAdmin" && User.GetUserId() != id)
             return Forbid();
 
         var success = await _userService.DeleteUserAsync(id, ct);
