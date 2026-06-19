@@ -1,5 +1,4 @@
 using Hydra.Api.Data;
-using Minio;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using StackExchange.Redis;
@@ -110,17 +109,7 @@ try
     builder.Services.Configure<Hydra.Api.Configuration.CloudflareR2Settings>(
         builder.Configuration.GetSection("CloudflareR2"));
 
-    builder.Services.AddSingleton<Minio.IMinioClient>(sp =>
-    {
-        var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Hydra.Api.Configuration.CloudflareR2Settings>>().Value;
-        return new Minio.MinioClient()
-            .WithEndpoint($"{settings.AccountId}.r2.cloudflarestorage.com")
-            .WithCredentials(settings.AccessKeyId, settings.SecretAccessKey)
-            .WithSSL(true)
-            .WithRegion("auto")
-            .Build();
-    });
-
+    builder.Services.AddHttpClient("R2");
     builder.Services.AddScoped<Hydra.Api.Services.Storage.IStorageService, Hydra.Api.Services.Storage.CloudflareR2Service>();
 
     builder.Services.AddHttpClient("Expo", client =>
