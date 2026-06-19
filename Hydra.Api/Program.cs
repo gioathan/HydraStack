@@ -116,6 +116,7 @@ try
         {
             ServiceURL = $"https://{settings.AccountId}.r2.cloudflarestorage.com",
             ForcePathStyle = true,
+            AuthenticationRegion = "auto",
         };
         return new Amazon.S3.AmazonS3Client(settings.AccessKeyId, settings.SecretAccessKey, s3Config);
     });
