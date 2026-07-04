@@ -61,7 +61,9 @@ public class VenueService : IVenueService
                     if (cover is null)
                         return v.ToDto(averageRating: agg.Average, ratingCount: agg.Count);
 
-                    var url = await _googlePlacesService.GetPhotoUrlAsync(cover.GooglePlaceId, ct: ct);
+                    var url = string.IsNullOrEmpty(cover.GooglePlaceId)
+                        ? null
+                        : await _googlePlacesService.GetPhotoUrlAsync(cover.GooglePlaceId, ct: ct);
                     var photos = v.Photos
                         .OrderBy(p => p.DisplayOrder)
                         .Select(p => p.Id == cover.Id ? p.ToDto(url) : p.ToDto())
@@ -292,6 +294,9 @@ public class VenueService : IVenueService
         var ordered = photos.OrderBy(p => p.DisplayOrder).ToList();
         var tasks = ordered.Select(async p =>
         {
+            if (string.IsNullOrEmpty(p.GooglePlaceId))
+                return p.ToDto();
+
             var url = await _googlePlacesService.GetPhotoUrlAsync(p.GooglePlaceId, ct: ct);
             return p.ToDto(url);
         });
