@@ -23,8 +23,6 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings
             .AsNoTracking()
-            .Include(b => b.Venue)
-            .Include(b => b.Customer)
             .AsQueryable();
 
         if (venueId.HasValue)
@@ -53,8 +51,6 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings
             .AsNoTracking()
-            .Include(b => b.Venue)
-            .Include(b => b.Customer)
             .Where(b => b.Venue.UserId == adminUserId);
 
         if (venueId.HasValue)
@@ -74,8 +70,6 @@ public class BookingRepository : IBookingRepository
     {
         return await _context.Bookings
             .AsNoTracking()
-            .Include(b => b.Venue)
-            .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
     }
 
@@ -104,10 +98,23 @@ public class BookingRepository : IBookingRepository
         return await _context.Bookings
             .AsNoTracking()
             .Where(b => b.VenueId == venueId)
-            .Where(b => b.Status == BookingStatus.Confirmed)
+            .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending)
             .Where(b => b.StartUtc >= startOfDay && b.StartUtc < endOfDay)
             .OrderBy(b => b.StartUtc)
             .ToListAsync(ct);
+    }
+
+    public async Task<bool> AnyConflictAsync(
+        Guid venueId,
+        DateTime startUtc,
+        DateTime endUtc,
+        CancellationToken ct)
+    {
+        return await _context.Bookings
+            .AsNoTracking()
+            .AnyAsync(b => b.VenueId == venueId
+                && b.StartUtc < endUtc && b.EndUtc > startUtc
+                && (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed), ct);
     }
 
     public async Task<Booking> AddAsync(Booking booking, CancellationToken ct = default)

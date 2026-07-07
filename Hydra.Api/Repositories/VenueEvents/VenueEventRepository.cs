@@ -16,6 +16,7 @@ public class VenueEventRepository : IVenueEventRepository
     public async Task<List<VenueEvent>> GetByVenueIdAsync(Guid venueId, bool includePast, CancellationToken ct = default)
     {
         var query = _context.VenueEvents
+            .AsNoTracking()
             .Include(e => e.AdditionalPhotos)
             .Where(e => e.VenueId == venueId);
 
@@ -32,7 +33,7 @@ public class VenueEventRepository : IVenueEventRepository
     public async Task<(List<VenueEvent> Items, int Total)> GetUpcomingPagedAsync(int skip, int take, string? location, CancellationToken ct = default)
     {
         var query = _context.VenueEvents
-            .Include(e => e.AdditionalPhotos)
+            .AsNoTracking()
             .Include(e => e.Venue)
             .Where(e =>
                 !e.ClosedAtUtc.HasValue &&

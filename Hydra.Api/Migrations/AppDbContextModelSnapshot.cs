@@ -64,6 +64,8 @@ namespace Hydra.Api.Migrations
 
                     b.HasIndex("VenueId", "StartUtc", "EndUtc");
 
+                    b.HasIndex("CreatedAtUtc");
+
                     b.ToTable("Bookings");
                 });
 
@@ -136,6 +138,10 @@ namespace Hydra.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("Phone");
 
                     b.ToTable("Customers");
                 });
@@ -227,6 +233,8 @@ namespace Hydra.Api.Migrations
 
                     b.HasIndex("VenueTypeId");
 
+                    b.HasIndex("Location");
+
                     b.ToTable("Venues");
                 });
 
@@ -265,6 +273,8 @@ namespace Hydra.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("VenueId", "StartsAtUtc");
+
+                    b.HasIndex("StartsAtUtc");
 
                     b.ToTable("VenueEvents");
                 });

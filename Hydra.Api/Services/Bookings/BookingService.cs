@@ -137,13 +137,13 @@ public class BookingService : IBookingService
 
         try
         {
-            var conflictingBookings = await _bookingRepo.GetConflictingBookingsAsync(
+            var hasConflict = await _bookingRepo.AnyConflictAsync(
                 request.VenueId,
                 request.StartUtc,
                 request.EndUtc,
                 ct);
 
-            if (conflictingBookings.Any())
+            if (hasConflict)
                 throw new InvalidOperationException("The requested time slot conflicts with an existing booking");
 
             var booking = request.ToModel();
@@ -322,7 +322,14 @@ public class BookingService : IBookingService
                 var slotMinutes = venue.Rules?.SlotMinutes ?? 90;
                 var openHour = venue.Rules?.OpenHour ?? 9;
                 var closeHour = venue.Rules?.CloseHour ?? 22;
-                var availableSlots = GenerateAvailableSlots(date, slotMinutes, openHour, closeHour);
+                var generatedSlots = GenerateAvailableSlots(date, slotMinutes, openHour, closeHour);
+
+                var existingBookings = await _bookingRepo.GetBookingsByVenueAndDateAsync(venueId, date, ct);
+
+                var availableSlots = generatedSlots
+                    .Where(slot => !existingBookings.Any(b =>
+                        b.StartUtc < slot.EndUtc && b.EndUtc > slot.StartUtc))
+                    .ToList();
 
                 var isAvailable = availableSlots.Any();
                 var reason = isAvailable
