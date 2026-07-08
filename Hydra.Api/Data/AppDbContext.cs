@@ -101,6 +101,9 @@ namespace Hydra.Api.Data
 
                 b.Property(v => v.EventsEnabled)
                     .HasDefaultValue(false);
+
+                // Customer venue-list filter + locations DISTINCT
+                b.HasIndex(v => v.Location);
             });
 
             modelBuilder.Entity<VenueEvent>(b =>
@@ -129,6 +132,9 @@ namespace Hydra.Api.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 b.HasIndex(e => new { e.VenueId, e.StartsAtUtc });
+
+                // Global upcoming-events feed sorts/filters by StartsAtUtc with no VenueId predicate
+                b.HasIndex(e => e.StartsAtUtc);
             });
 
             modelBuilder.Entity<VenueEventPhoto>(b =>
@@ -205,6 +211,10 @@ namespace Hydra.Api.Data
                 b.Property(c => c.Phone).HasMaxLength(64);
                 b.Property(c => c.PushToken).HasMaxLength(256);
 
+                // Admin lookup + every signup/update dedupe check filters on these
+                b.HasIndex(c => c.Email);
+                b.HasIndex(c => c.Phone);
+
                 b.HasOne(c => c.User)
                     .WithMany()
                     .HasForeignKey(c => c.UserId)
@@ -236,6 +246,9 @@ namespace Hydra.Api.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 b.HasIndex(x => new { x.VenueId, x.StartUtc, x.EndUtc });
+
+                // Unfiltered admin bookings list sorts by CreatedAtUtc DESC
+                b.HasIndex(x => x.CreatedAtUtc);
 
                 b.Property(x => x.RatingNotificationSentAt).IsRequired(false);
             });

@@ -22,6 +22,9 @@ public static class CacheKeys
         public static readonly TimeSpan PendingRatings = TimeSpan.FromMinutes(2);
         /// <summary>Google Places photo URLs are stable for a long time.</summary>
         public static readonly TimeSpan GooglePlacesPhoto = TimeSpan.FromHours(24);
+        /// <summary>Upcoming/venue events feed — a hot read path.</summary>
+        public static readonly TimeSpan EventsList = TimeSpan.FromMinutes(10);
+        public static readonly TimeSpan EventDetail = TimeSpan.FromMinutes(15);
     }
 
     public static class Jitter
@@ -32,6 +35,7 @@ public static class CacheKeys
         public static readonly TimeSpan VenueTypes = TimeSpan.FromSeconds(60);
         public static readonly TimeSpan Customers = TimeSpan.FromSeconds(30);
         public static readonly TimeSpan Ratings = TimeSpan.FromSeconds(15);
+        public static readonly TimeSpan Events = TimeSpan.FromSeconds(30);
     }
 
     // ==========================================
@@ -44,6 +48,7 @@ public static class CacheKeys
     public static string VenueTypesToken => $"{Ns}:venue-types:ver";
     public static string CustomersToken => $"{Ns}:customers:ver";
     public static string RatingsToken => $"{Ns}:ratings:ver";
+    public static string EventsToken => $"{Ns}:events:ver";
 
     // ==========================================
     // VENUE CACHE KEYS
@@ -105,6 +110,21 @@ public static class CacheKeys
     /// <summary>Pending ratings list for a customer.</summary>
     public static string PendingRatings(Guid customerId, int version)
         => $"{Ns}:ratings:pending:v{version}:{customerId}";
+
+    // ==========================================
+    // EVENT CACHE KEYS
+    // ==========================================
+
+    /// <summary>Upcoming events feed, keyed by page/size/location.</summary>
+    public static string UpcomingEvents(int page, int pageSize, string? location, int version)
+        => $"{Ns}:events:upcoming:v{version}:p{page}:s{pageSize}:l{location?.ToLowerInvariant()}";
+
+    /// <summary>Events for a single venue.</summary>
+    public static string VenueEvents(Guid venueId, bool includePast, int version)
+        => $"{Ns}:events:venue:v{version}:{venueId}:past{includePast}";
+
+    public static string EventDetail(Guid venueId, Guid eventId, int version)
+        => $"{Ns}:events:v{version}:{venueId}:{eventId}";
 
     // ==========================================
     // GOOGLE PLACES CACHE KEYS

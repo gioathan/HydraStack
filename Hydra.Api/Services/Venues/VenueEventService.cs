@@ -1,3 +1,4 @@
+using Hydra.Api.Caching;
 using Hydra.Api.Contracts.Common;
 using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Mapping;
@@ -11,11 +12,13 @@ public class VenueEventService : IVenueEventService
 {
     private readonly IVenueEventRepository _eventRepo;
     private readonly IVenueRepository _venueRepo;
+    private readonly ICache _cache;
 
-    public VenueEventService(IVenueEventRepository eventRepo, IVenueRepository venueRepo)
+    public VenueEventService(IVenueEventRepository eventRepo, IVenueRepository venueRepo, ICache cache)
     {
         _eventRepo = eventRepo;
         _venueRepo = venueRepo;
+        _cache = cache;
     }
 
     public async Task<PagedResult<EventListItemDto>> GetUpcomingPagedAsync(int page, int pageSize, string? location, CancellationToken ct = default)
@@ -23,34 +26,71 @@ public class VenueEventService : IVenueEventService
         var safeSize = Math.Clamp(pageSize, 1, 100);
         var skip = (Math.Max(1, page) - 1) * safeSize;
 
-        var (items, total) = await _eventRepo.GetUpcomingPagedAsync(skip, safeSize, location, ct);
+        var version = await _cache.GetTokenAsync(CacheKeys.EventsToken, ct: ct);
+        var key = CacheKeys.UpcomingEvents(page, safeSize, location, version);
 
-        var dtos = items.Select(e => new EventListItemDto(
-            e.Id,
-            e.VenueId,
-            e.Venue.Name,
-            e.Venue.Location,
-            e.Title,
-            e.Description,
-            e.StartsAtUtc,
-            e.EndsAtUtc,
-            e.MainPhotoUrl
-        )).ToList();
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.EventsList,
+            factory: async ct =>
+            {
+                var (items, total) = await _eventRepo.GetUpcomingPagedAsync(skip, safeSize, location, ct);
 
-        return new PagedResult<EventListItemDto>(dtos, total, page, safeSize);
+                var dtos = items.Select(e => new EventListItemDto(
+                    e.Id,
+                    e.VenueId,
+                    e.Venue.Name,
+                    e.Venue.Location,
+                    e.Title,
+                    e.Description,
+                    e.StartsAtUtc,
+                    e.EndsAtUtc,
+                    e.MainPhotoUrl
+                )).ToList();
+
+                return new PagedResult<EventListItemDto>(dtos, total, page, safeSize);
+            },
+            jitter: CacheKeys.Jitter.Events,
+            ct: ct
+        );
     }
 
     public async Task<IReadOnlyList<VenueEventDto>> GetEventsAsync(Guid venueId, bool includePast, CancellationToken ct = default)
     {
-        var events = await _eventRepo.GetByVenueIdAsync(venueId, includePast, ct);
-        return events.Select(e => e.ToDto()).ToList();
+        var version = await _cache.GetTokenAsync(CacheKeys.EventsToken, ct: ct);
+        var key = CacheKeys.VenueEvents(venueId, includePast, version);
+
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.EventsList,
+            factory: async ct =>
+            {
+                var events = await _eventRepo.GetByVenueIdAsync(venueId, includePast, ct);
+                return (IReadOnlyList<VenueEventDto>)events.Select(e => e.ToDto()).ToList();
+            },
+            jitter: CacheKeys.Jitter.Events,
+            ct: ct
+        ) ?? [];
     }
 
     public async Task<VenueEventDto?> GetEventByIdAsync(Guid venueId, Guid eventId, CancellationToken ct = default)
     {
-        var ev = await _eventRepo.GetByIdAsync(eventId, ct);
-        if (ev is null || ev.VenueId != venueId) return null;
-        return ev.ToDto();
+        var version = await _cache.GetTokenAsync(CacheKeys.EventsToken, ct: ct);
+        var key = CacheKeys.EventDetail(venueId, eventId, version);
+
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.EventDetail,
+            factory: async ct =>
+            {
+                var ev = await _eventRepo.GetByIdAsync(eventId, ct);
+                if (ev is null || ev.VenueId != venueId) return null;
+                return ev.ToDto();
+            },
+            cacheNull: true,
+            jitter: CacheKeys.Jitter.Events,
+            ct: ct
+        );
     }
 
     public async Task<(VenueEventDto? Result, string? Error)> CreateEventAsync(Guid venueId, CreateVenueEventRequest request, CancellationToken ct = default)
@@ -75,6 +115,7 @@ public class VenueEventService : IVenueEventService
         };
 
         await _eventRepo.AddAsync(ev, ct);
+        await _cache.BumpTokenAsync(CacheKeys.EventsToken, ct);
         return (ev.ToDto(), null);
     }
 
@@ -95,6 +136,7 @@ public class VenueEventService : IVenueEventService
         ev.MainPhotoUrl = request.MainPhotoUrl;
 
         await _eventRepo.UpdateAsync(ev, ct);
+        await _cache.BumpTokenAsync(CacheKeys.EventsToken, ct);
         return (ev.ToDto(), null);
     }
 
@@ -103,6 +145,7 @@ public class VenueEventService : IVenueEventService
         var ev = await _eventRepo.GetByIdAsync(eventId, ct);
         if (ev is null || ev.VenueId != venueId) return false;
         await _eventRepo.DeleteAsync(ev, ct);
+        await _cache.BumpTokenAsync(CacheKeys.EventsToken, ct);
         return true;
     }
 
@@ -113,6 +156,7 @@ public class VenueEventService : IVenueEventService
 
         ev.ClosedAtUtc = DateTime.UtcNow;
         await _eventRepo.UpdateAsync(ev, ct);
+        await _cache.BumpTokenAsync(CacheKeys.EventsToken, ct);
         return ev.ToDto();
     }
 
@@ -130,6 +174,7 @@ public class VenueEventService : IVenueEventService
 
         await _eventRepo.AddPhotoAsync(photo, ct);
         ev.AdditionalPhotos.Add(photo);
+        await _cache.BumpTokenAsync(CacheKeys.EventsToken, ct);
         return ev.ToDto();
     }
 
@@ -142,6 +187,7 @@ public class VenueEventService : IVenueEventService
         if (photo is null) return false;
 
         await _eventRepo.DeletePhotoAsync(photo, ct);
+        await _cache.BumpTokenAsync(CacheKeys.EventsToken, ct);
         return true;
     }
 }

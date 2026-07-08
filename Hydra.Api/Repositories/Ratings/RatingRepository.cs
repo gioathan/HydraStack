@@ -22,14 +22,13 @@ public class RatingRepository : IRatingRepository
 
     public async Task<(decimal Average, int Count)> GetAggregateAsync(Guid venueId, CancellationToken ct = default)
     {
-        var ratings = await _context.VenueRatings
+        var agg = await _context.VenueRatings.AsNoTracking()
             .Where(r => r.VenueId == venueId)
-            .ToListAsync(ct);
+            .GroupBy(_ => 1)
+            .Select(g => new { Avg = (decimal?)g.Average(r => r.Value), Count = g.Count() })
+            .FirstOrDefaultAsync(ct);
 
-        if (ratings.Count == 0)
-            return (0m, 0);
-
-        return (ratings.Average(r => r.Value), ratings.Count);
+        return (agg?.Avg ?? 0m, agg?.Count ?? 0);
     }
 
     public async Task<Dictionary<Guid, (decimal Average, int Count)>> GetAggregatesAsync(
@@ -53,22 +52,25 @@ public class RatingRepository : IRatingRepository
     {
         var now = DateTime.UtcNow;
 
-        var bookings = await _context.Bookings
+        // One pending rating per venue — keep most recent eligible booking.
+        // The NOT-EXISTS on a later booking for the same venue collapses the
+        // dedupe into SQL so we don't materialize every past booking.
+        return await _context.Bookings
             .AsNoTracking()
-            .Include(b => b.Venue)
             .Where(b =>
                 b.CustomerId == customerId &&
                 b.Status == BookingStatus.Confirmed &&
                 b.EndUtc < now &&
-                !_context.VenueRatings.Any(r => r.CustomerId == customerId && r.VenueId == b.VenueId))
+                !_context.VenueRatings.Any(r => r.CustomerId == customerId && r.VenueId == b.VenueId) &&
+                !_context.Bookings.Any(later =>
+                    later.CustomerId == customerId &&
+                    later.Status == BookingStatus.Confirmed &&
+                    later.EndUtc < now &&
+                    later.VenueId == b.VenueId &&
+                    later.EndUtc > b.EndUtc))
             .OrderByDescending(b => b.EndUtc)
-            .ToListAsync(ct);
-
-        // One pending rating per venue — keep most recent eligible booking
-        return bookings
-            .DistinctBy(b => b.VenueId)
             .Select(b => new PendingRatingDto(b.VenueId, b.Venue.Name, b.Id, b.EndUtc))
-            .ToList();
+            .ToListAsync(ct);
     }
 
     public async Task AddAsync(VenueRating rating, CancellationToken ct = default)

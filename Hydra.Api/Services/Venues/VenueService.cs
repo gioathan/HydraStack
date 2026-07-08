@@ -57,17 +57,10 @@ public class VenueService : IVenueService
                 {
                     ratingAggregates.TryGetValue(v.Id, out var agg);
 
-                    var cover = v.Photos.MinBy(p => p.DisplayOrder);
-                    if (cover is null)
+                    if (v.Photos.Count == 0)
                         return v.ToDto(averageRating: agg.Average, ratingCount: agg.Count);
 
-                    var url = string.IsNullOrEmpty(cover.GooglePlaceId)
-                        ? null
-                        : await _googlePlacesService.GetPhotoUrlAsync(cover.GooglePlaceId, ct: ct);
-                    var photos = v.Photos
-                        .OrderBy(p => p.DisplayOrder)
-                        .Select(p => p.Id == cover.Id ? p.ToDto(url) : p.ToDto())
-                        .ToList();
+                    var photos = await ResolvePhotoUrlsAsync(v.Photos, ct);
                     return v.ToDto(photos, agg.Average, agg.Count);
                 }));
 
@@ -287,6 +280,17 @@ public class VenueService : IVenueService
         return items.Select(pi => pi.ToDto()).ToList();
     }
 
+    private async Task<string?> ResolvePhotoUrlAsync(VenuePhoto photo, CancellationToken ct)
+    {
+        if (!string.IsNullOrEmpty(photo.Url))
+            return photo.Url;
+
+        if (!string.IsNullOrEmpty(photo.GooglePlaceId))
+            return await _googlePlacesService.GetPhotoUrlAsync(photo.GooglePlaceId, ct: ct);
+
+        return null;
+    }
+
     private async Task<IReadOnlyList<VenuePhotoDto>> ResolvePhotoUrlsAsync(
         IEnumerable<VenuePhoto> photos,
         CancellationToken ct)
@@ -294,10 +298,7 @@ public class VenueService : IVenueService
         var ordered = photos.OrderBy(p => p.DisplayOrder).ToList();
         var tasks = ordered.Select(async p =>
         {
-            if (string.IsNullOrEmpty(p.GooglePlaceId))
-                return p.ToDto();
-
-            var url = await _googlePlacesService.GetPhotoUrlAsync(p.GooglePlaceId, ct: ct);
+            var url = await ResolvePhotoUrlAsync(p, ct);
             return p.ToDto(url);
         });
         return await Task.WhenAll(tasks);
