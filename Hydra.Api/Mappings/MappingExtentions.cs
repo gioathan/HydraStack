@@ -58,11 +58,7 @@ public static class MappingExtensions
             averageRating,
             ratingCount,
             venue.Location,
-            venue.Latitude,
-            venue.Longitude,
-            venue.Latitude.HasValue && venue.Longitude.HasValue
-                ? $"https://maps.google.com/?q={venue.Latitude},{venue.Longitude}"
-                : null,
+            venue.MapsUrl,
             venue.BookingsEnabled,
             venue.EventsEnabled);
 
@@ -85,8 +81,7 @@ public static class MappingExtensions
         venue.Capacity = request.Capacity;
         venue.VenueTypeId = request.VenueTypeId;
         venue.Location = request.Location;
-        venue.Latitude = request.Latitude;
-        venue.Longitude = request.Longitude;
+        venue.MapsUrl = request.MapsUrl;
     }
 
     public static CustomerDto ToDto(this Customer customer) =>

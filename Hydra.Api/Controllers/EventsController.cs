@@ -29,4 +29,14 @@ public class EventsController : ControllerBase
     {
         return Ok(await _eventService.GetUpcomingPagedAsync(page, pageSize, location, ct));
     }
+
+    [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    public async Task<ActionResult<EventListItemDto>> GetEvent(Guid id, CancellationToken ct = default)
+    {
+        var ev = await _eventService.GetUpcomingByIdAsync(id, ct);
+        if (ev is null)
+            return NotFound(new { message = $"Event with ID {id} not found" });
+        return Ok(ev);
+    }
 }

@@ -207,14 +207,11 @@ namespace Hydra.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("double precision");
-
                     b.Property<string>("Location")
                         .HasColumnType("text");
 
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("double precision");
+                    b.Property<string>("MapsUrl")
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()

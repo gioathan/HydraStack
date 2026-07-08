@@ -101,7 +101,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Restaurant",
                 PhotoSeeds:    ["picsum:sunset-terrace", "picsum:sunset-terrace-2", "picsum:sunset-terrace-3"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 12, CloseHour: 23,
-                Location:      "Hydra", Latitude: 37.3490, Longitude: 23.4735),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3490,23.4735"),
 
             new VenueSeed(
                 AdminEmail:    "admin.harbor@hydra.app",
@@ -111,7 +111,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Cafe",
                 PhotoSeeds:    ["picsum:harbor-view-cafe", "picsum:harbor-view-cafe-2"],
                 SlotMinutes:   60,  AutoConfirm: true,  OpenHour: 8,  CloseHour: 20,
-                Location:      "Hydra", Latitude: 37.3488, Longitude: 23.4725),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3488,23.4725"),
 
             new VenueSeed(
                 AdminEmail:    "admin.bluebar@hydra.app",
@@ -121,7 +121,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Bar",
                 PhotoSeeds:    ["picsum:the-blue-bar", "picsum:the-blue-bar-2", "picsum:the-blue-bar-3"],
                 SlotMinutes:   120, AutoConfirm: false, OpenHour: 18, CloseHour: 2,
-                Location:      "Hydra", Latitude: 37.3483, Longitude: 23.4722),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3483,23.4722"),
 
             new VenueSeed(
                 AdminEmail:    "admin.crystalbeach@hydra.app",
@@ -131,7 +131,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Beach Bar",
                 PhotoSeeds:    ["picsum:crystal-beach-bar", "picsum:crystal-beach-bar-2"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 10, CloseHour: 20,
-                Location:      "Hydra", Latitude: 37.3530, Longitude: 23.4820),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3530,23.4820"),
 
             new VenueSeed(
                 AdminEmail:    "admin.poseidon@hydra.app",
@@ -141,7 +141,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Boat Trip",
                 PhotoSeeds:    ["picsum:poseidon-boat-trips", "picsum:poseidon-boat-trips-2"],
                 SlotMinutes:   180, AutoConfirm: false, OpenHour: 9,  CloseHour: 18,
-                Location:      "Hydra", Latitude: 37.3493, Longitude: 23.4728),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3493,23.4728"),
 
             new VenueSeed(
                 AdminEmail:    "admin.acropolis@hydra.app",
@@ -151,7 +151,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Restaurant",
                 PhotoSeeds:    ["picsum:acropolis-restaurant", "picsum:acropolis-restaurant-2", "picsum:acropolis-restaurant-3"],
                 SlotMinutes:   90,  AutoConfirm: true,  OpenHour: 13, CloseHour: 23,
-                Location:      "Hydra", Latitude: 37.3478, Longitude: 23.4745),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3478,23.4745"),
 
             new VenueSeed(
                 AdminEmail:    "admin.aegean@hydra.app",
@@ -161,7 +161,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Bar",
                 PhotoSeeds:    ["picsum:aegean-breeze-bar", "picsum:aegean-breeze-bar-2"],
                 SlotMinutes:   60,  AutoConfirm: true,  OpenHour: 17, CloseHour: 1,
-                Location:      "Hydra", Latitude: 37.3495, Longitude: 23.4705),
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3495,23.4705"),
 
             new VenueSeed(
                 AdminEmail:    "admin.hydracafe@hydra.app",
@@ -171,7 +171,7 @@ public class DatabaseSeeder
                 VenueTypeName: "Cafe",
                 PhotoSeeds:    ["picsum:hydra-coffee-house", "picsum:hydra-coffee-house-2"],
                 SlotMinutes:   45,  AutoConfirm: true,  OpenHour: 7,  CloseHour: 19,
-                Location:      "Hydra", Latitude: 37.3486, Longitude: 23.4729)
+                Location:      "Hydra", MapsUrl: "https://www.google.com/maps?q=37.3486,23.4729")
         };
 
         foreach (var seed in venueData)
@@ -209,8 +209,7 @@ public class DatabaseSeeder
                     Address = seed.Address,
                     Capacity = seed.Capacity,
                     Location = seed.Location,
-                    Latitude = seed.Latitude,
-                    Longitude = seed.Longitude,
+                    MapsUrl = seed.MapsUrl,
                     BookingsEnabled = true,
                     EventsEnabled = true
                 };
@@ -259,8 +258,7 @@ public class DatabaseSeeder
         int OpenHour,
         int CloseHour,
         string? Location = null,
-        double? Latitude = null,
-        double? Longitude = null);
+        string? MapsUrl = null);
 
     private async Task SeedCustomersAsync(CancellationToken ct)
     {
