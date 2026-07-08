@@ -126,6 +126,10 @@ public static class CacheKeys
     public static string EventDetail(Guid venueId, Guid eventId, int version)
         => $"{Ns}:events:v{version}:{venueId}:{eventId}";
 
+    /// <summary>Public event detail looked up by id alone (no venue scope).</summary>
+    public static string EventById(Guid eventId, int version)
+        => $"{Ns}:events:byid:v{version}:{eventId}";
+
     // ==========================================
     // GOOGLE PLACES CACHE KEYS
     // ==========================================

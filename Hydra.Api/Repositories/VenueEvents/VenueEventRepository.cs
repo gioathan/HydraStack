@@ -61,6 +61,14 @@ public class VenueEventRepository : IVenueEventRepository
             .FirstOrDefaultAsync(e => e.Id == id, ct);
     }
 
+    public async Task<VenueEvent?> GetListItemByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.VenueEvents
+            .AsNoTracking()
+            .Include(e => e.Venue)
+            .FirstOrDefaultAsync(e => e.Id == id, ct);
+    }
+
     public async Task<bool> HasActiveEventOnDayAsync(Guid venueId, DateTime date, Guid? excludeId, CancellationToken ct = default)
     {
         var dayStart = date.Date;

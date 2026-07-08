@@ -11,8 +11,7 @@ public class Venue
     public string Address { get; set; } = "";
     public string? Description { get; set; }
     public int Capacity { get; set; } = 40;
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
+    public string? MapsUrl { get; set; }
     public string? Location { get; set; }
     public bool BookingsEnabled { get; set; } = false;
     public bool EventsEnabled { get; set; } = false;

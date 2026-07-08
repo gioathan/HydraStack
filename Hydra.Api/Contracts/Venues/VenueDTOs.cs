@@ -66,8 +66,6 @@ public record VenueDto(
     decimal AverageRating,
     int RatingCount,
     string? Location,
-    double? Latitude,
-    double? Longitude,
     string? GoogleMapsUrl,
     bool BookingsEnabled,
     bool EventsEnabled);
@@ -87,8 +85,7 @@ public record UpdateVenueRequest(
     Guid VenueTypeId,
     string? Description = null,
     string? Location = null,
-    double? Latitude = null,
-    double? Longitude = null);
+    string? MapsUrl = null);
 
 public record BookingRulesDto(
     bool AutoConfirm,

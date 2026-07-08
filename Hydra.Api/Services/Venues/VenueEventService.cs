@@ -93,6 +93,35 @@ public class VenueEventService : IVenueEventService
         );
     }
 
+    public async Task<EventListItemDto?> GetUpcomingByIdAsync(Guid eventId, CancellationToken ct = default)
+    {
+        var version = await _cache.GetTokenAsync(CacheKeys.EventsToken, ct: ct);
+        var key = CacheKeys.EventById(eventId, version);
+
+        return await _cache.GetOrSetAsync(
+            key: key,
+            ttl: CacheKeys.Ttl.EventDetail,
+            factory: async ct =>
+            {
+                var e = await _eventRepo.GetListItemByIdAsync(eventId, ct);
+                if (e is null) return null;
+                return new EventListItemDto(
+                    e.Id,
+                    e.VenueId,
+                    e.Venue.Name,
+                    e.Venue.Location,
+                    e.Title,
+                    e.Description,
+                    e.StartsAtUtc,
+                    e.EndsAtUtc,
+                    e.MainPhotoUrl);
+            },
+            cacheNull: true,
+            jitter: CacheKeys.Jitter.Events,
+            ct: ct
+        );
+    }
+
     public async Task<(VenueEventDto? Result, string? Error)> CreateEventAsync(Guid venueId, CreateVenueEventRequest request, CancellationToken ct = default)
     {
         var venue = await _venueRepo.GetByIdAsync(venueId, ct);
