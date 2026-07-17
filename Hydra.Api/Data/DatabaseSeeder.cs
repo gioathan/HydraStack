@@ -7,11 +7,13 @@ public class DatabaseSeeder
 {
     private readonly AppDbContext _context;
     private readonly ILogger<DatabaseSeeder> _logger;
+    private readonly IConfiguration _config;
 
-    public DatabaseSeeder(AppDbContext context, ILogger<DatabaseSeeder> logger)
+    public DatabaseSeeder(AppDbContext context, ILogger<DatabaseSeeder> logger, IConfiguration config)
     {
         _context = context;
         _logger = logger;
+        _config = config;
     }
 
     public async Task SeedAsync(CancellationToken ct = default)
@@ -62,10 +64,15 @@ public class DatabaseSeeder
         }
     }
 
-    private async Task SeedSuperAdminAsync(CancellationToken ct)
+    /// <summary>
+    /// Ensures a SuperAdmin account exists. Idempotent and safe to run on every startup
+    /// (including Production). Credentials come from config (SuperAdmin:Email / SuperAdmin:Password),
+    /// falling back to the dev defaults when unset.
+    /// </summary>
+    public async Task SeedSuperAdminAsync(CancellationToken ct = default)
     {
-        const string email = "superadmin@hydra.app";
-        const string password = "Admin@12345!";
+        var email = _config["SuperAdmin:Email"] ?? "superadmin@hydra.app";
+        var password = _config["SuperAdmin:Password"] ?? "Admin@12345!";
 
         try
         {
@@ -81,7 +88,7 @@ public class DatabaseSeeder
             });
 
             await _context.SaveChangesAsync(ct);
-            _logger.LogInformation("Seeded SuperAdmin — email: {Email} password: {Password}", email, password);
+            _logger.LogInformation("Seeded SuperAdmin — email: {Email}", email);
         }
         catch (Exception ex)
         {
