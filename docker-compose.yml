@@ -32,6 +32,11 @@ services:
       GooglePlaces__ApiKey: "${GOOGLE_PLACES_API_KEY}"
       Resend__ApiKey: "${RESEND_API_KEY}"
       GoogleAuth__ClientId: "${GOOGLEAUTH__CLIENTID}"
+      # Comma-separated allowed browser origins (e.g. the Vercel frontend URL)
+      Cors__AllowedOrigins: "${CORS_ALLOWED_ORIGINS}"
+      # Initial SuperAdmin account (created on first startup if it doesn't exist)
+      SuperAdmin__Email: "${SUPERADMIN_EMAIL}"
+      SuperAdmin__Password: "${SUPERADMIN_PASSWORD}"
       CloudflareR2__AccountId: "${CLOUDFLARER2__ACCOUNTID}"
       CloudflareR2__AccessKeyId: "${CLOUDFLARER2__ACCESSKEYID}"
       CloudflareR2__SecretAccessKey: "${CLOUDFLARER2__SECRETACCESSKEY}"

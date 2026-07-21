@@ -175,13 +175,15 @@ try
 
     builder.Services.AddCors(options =>
     {
+        // Origins come from config (Cors:AllowedOrigins — comma-separated, e.g. the
+        // Vercel domain in production), falling back to localhost for local dev.
+        var corsOrigins = (builder.Configuration["Cors:AllowedOrigins"]
+                ?? "http://localhost:3000,http://localhost:5173,http://localhost:4200")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
         options.AddDefaultPolicy(policy =>
         {
-            policy.WithOrigins(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:4200"
-            )
+            policy.WithOrigins(corsOrigins)
             .AllowAnyMethod()
             .WithHeaders("Content-Type", "Authorization")
             .AllowCredentials();
@@ -287,7 +289,15 @@ try
         // return;
     }
 
-    // Seed development data automatically on startup
+    // Always ensure a SuperAdmin exists (idempotent) — this is the only seed that
+    // runs in Production, so a fresh prod database still has an account to log in with.
+    using (var adminScope = app.Services.CreateScope())
+    {
+        var seeder = adminScope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedSuperAdminAsync();
+    }
+
+    // Seed full demo data (venue types, venues, customers, bookings) only in Development.
     if (app.Environment.IsDevelopment())
     {
         using var seedScope = app.Services.CreateScope();
