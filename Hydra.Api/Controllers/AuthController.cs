@@ -67,7 +67,7 @@ public class AuthController : ControllerBase
         }
 
         if (!user.IsEmailVerified && user.Role == UserRole.Customer)
-            return StatusCode(403, new { message = "Please verify your email before logging in." });
+            return StatusCode(403, new { message = "Please verify your email before logging in.", userId = user.Id });
 
         Guid? customerId = null;
         Guid? venueId = null;
