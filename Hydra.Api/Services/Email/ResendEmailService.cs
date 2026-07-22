@@ -7,7 +7,7 @@ public class ResendEmailService : IEmailService
     private readonly IResend _resend;
     private readonly ILogger<ResendEmailService> _logger;
 
-    private const string From = "Hydra Booking <onboarding@resend.dev>";
+    private const string From = "Local Bee <onboarding@resend.dev>";
 
     public ResendEmailService(IResend resend, ILogger<ResendEmailService> logger)
     {

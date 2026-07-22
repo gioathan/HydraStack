@@ -26,7 +26,7 @@ public class AuthEmailService : IAuthEmailService
     {
         var otp = GenerateOtp();
         await _cache.SetAsync(EmailVerifyKey(userId), otp, OtpTtl, ct);
-        await _emailService.SendAsync(email, "Verify your Hydra account", VerificationEmailHtml(otp), ct);
+        await _emailService.SendAsync(email, "Verify your Local Bee account", VerificationEmailHtml(otp), ct);
     }
 
     public async Task<bool> VerifyAndConsumeEmailOtpAsync(Guid userId, string code, CancellationToken ct = default)
@@ -66,7 +66,7 @@ public class AuthEmailService : IAuthEmailService
     {
         var otp = GenerateOtp();
         await _cache.SetAsync(PasswordResetKey(userId), otp, OtpTtl, ct);
-        await _emailService.SendAsync(email, "Reset your Hydra password", PasswordResetEmailHtml(otp), ct);
+        await _emailService.SendAsync(email, "Reset your Local Bee password", PasswordResetEmailHtml(otp), ct);
     }
 
     public async Task<bool> VerifyAndConsumePasswordResetOtpAsync(Guid userId, string code, CancellationToken ct = default)
@@ -86,7 +86,7 @@ public class AuthEmailService : IAuthEmailService
     private static string VerificationEmailHtml(string otp) => $"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
           <h2 style="color:#1a1a2e;margin-bottom:8px">Verify your email</h2>
-          <p style="color:#374151">Use the code below to verify your Hydra account. It expires in 15 minutes.</p>
+          <p style="color:#374151">Use the code below to verify your Local Bee account. It expires in 15 minutes.</p>
           <div style="font-size:40px;font-weight:bold;letter-spacing:10px;text-align:center;padding:28px 0;color:#1a1a2e;background:#f9fafb;border-radius:6px;margin:24px 0">{otp}</div>
           <p style="color:#9ca3af;font-size:13px">If you didn't create an account, you can safely ignore this email.</p>
         </div>
@@ -95,7 +95,7 @@ public class AuthEmailService : IAuthEmailService
     private static string PasswordResetEmailHtml(string otp) => $"""
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
           <h2 style="color:#1a1a2e;margin-bottom:8px">Reset your password</h2>
-          <p style="color:#374151">Use the code below to reset your Hydra password. It expires in 15 minutes.</p>
+          <p style="color:#374151">Use the code below to reset your Local Bee password. It expires in 15 minutes.</p>
           <div style="font-size:40px;font-weight:bold;letter-spacing:10px;text-align:center;padding:28px 0;color:#1a1a2e;background:#f9fafb;border-radius:6px;margin:24px 0">{otp}</div>
           <p style="color:#9ca3af;font-size:13px">If you didn't request a password reset, you can safely ignore this email.</p>
         </div>
