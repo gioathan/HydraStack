@@ -7,11 +7,12 @@ namespace Hydra.Api.Services.Users;
 
 public interface IUserService
 {
-    Task<PagedResult<UserDto>> GetAllUsersAsync(int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<UserDto>> GetAllUsersAsync(int page, int pageSize, string? search = null, string? role = null, CancellationToken ct = default);
     Task<UserDto?> GetUserByIdAsync(Guid id, CancellationToken ct = default);
     Task<UserDto?> GetUserByEmailAsync(string email, CancellationToken ct = default);
     Task<bool> DeleteUserAsync(Guid id, CancellationToken ct = default);
     Task<bool> UpdateUserPasswordAsync(Guid id, UpdateUserRequest request, CancellationToken ct = default);
+    Task<bool> UpdateUserEmailAsync(Guid id, string email, CancellationToken ct = default);
 
     Task<(UserDto User, CustomerDto Customer)> RegisterCustomerWithProfileAsync(
     RegisterCustomerRequest request,

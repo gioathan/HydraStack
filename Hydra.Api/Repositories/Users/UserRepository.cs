@@ -13,14 +13,21 @@ public class UserRepository : IUserRepository
         _context = context;
     }
 
-    public async Task<(List<User> Items, int TotalCount)> GetAllAsync(int skip, int take, CancellationToken ct = default)
+    public async Task<(List<User> Items, int TotalCount)> GetAllAsync(int skip, int take, string? search, UserRole? role, CancellationToken ct = default)
     {
-        var query = _context.Users
-            .AsNoTracking()
-            .OrderBy(u => u.Email);
+        var query = _context.Users.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(u => u.Email.ToLower().Contains(term));
+        }
+
+        if (role.HasValue)
+            query = query.Where(u => u.Role == role.Value);
 
         var total = await query.CountAsync(ct);
-        var items = await query.Skip(skip).Take(take).ToListAsync(ct);
+        var items = await query.OrderBy(u => u.Email).Skip(skip).Take(take).ToListAsync(ct);
         return (items, total);
     }
 
