@@ -71,11 +71,13 @@ public class AuthController : ControllerBase
 
         Guid? customerId = null;
         Guid? venueId = null;
+        var phoneRequired = false;
 
         if (user.Role == UserRole.Customer)
         {
             var customer = await _customerRepo.GetByUserIdAsync(user.Id, ct);
             customerId = customer?.Id;
+            phoneRequired = string.IsNullOrWhiteSpace(customer?.Phone);
         }
         else if (user.Role == UserRole.Admin)
         {
@@ -84,7 +86,7 @@ public class AuthController : ControllerBase
         }
 
         var token = _jwt.GenerateToken(user, customerId, venueId);
-        return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId));
+        return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId, phoneRequired));
     }
 
     [HttpPost("google")]
@@ -140,10 +142,12 @@ public class AuthController : ControllerBase
 
         Guid? customerId = null;
         Guid? venueId = null;
+        var phoneRequired = false;
         if (user.Role == UserRole.Customer)
         {
             var customer = await _customerRepo.GetByUserIdAsync(user.Id, ct);
             customerId = customer?.Id;
+            phoneRequired = string.IsNullOrWhiteSpace(customer?.Phone);
         }
         else if (user.Role == UserRole.Admin)
         {
@@ -152,7 +156,7 @@ public class AuthController : ControllerBase
         }
 
         var token = _jwt.GenerateToken(user, customerId, venueId);
-        return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId));
+        return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId, phoneRequired));
     }
 
     [HttpPost("verify-email")]
