@@ -136,14 +136,20 @@ public class AuthController : ControllerBase
         }
 
         Guid? customerId = null;
+        Guid? venueId = null;
         if (user.Role == UserRole.Customer)
         {
             var customer = await _customerRepo.GetByUserIdAsync(user.Id, ct);
             customerId = customer?.Id;
         }
+        else if (user.Role == UserRole.Admin)
+        {
+            var venue = await _venueRepo.GetByUserIdAsync(user.Id, ct);
+            venueId = venue?.Id;
+        }
 
-        var token = _jwt.GenerateToken(user, customerId);
-        return Ok(new LoginResponse(user.ToDto(), token, customerId));
+        var token = _jwt.GenerateToken(user, customerId, venueId);
+        return Ok(new LoginResponse(user.ToDto(), token, customerId, venueId));
     }
 
     [HttpPost("verify-email")]
