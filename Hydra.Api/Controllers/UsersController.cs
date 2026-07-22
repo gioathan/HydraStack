@@ -105,7 +105,6 @@ public class UsersController : ControllerBase
 
     [HttpPost("register/venue")]
     [Authorize(Roles = "SuperAdmin")]
-    [EnableRateLimiting("auth")]
     public async Task<ActionResult<VenueAuthResponse>> CreateVenue(
         [FromBody] RegisterVenueRequest request,
         CancellationToken ct)
