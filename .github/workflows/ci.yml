@@ -30,4 +30,4 @@ jobs:
       #   run: dotnet test --no-build --configuration Release
 
       - name: Docker Compose build
-        run: docker compose -f HydraStack/docker-compose.yml build
+        run: docker compose -f docker-compose.yml build
