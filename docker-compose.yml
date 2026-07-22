@@ -37,6 +37,7 @@ services:
       # Initial SuperAdmin account (created on first startup if it doesn't exist)
       SuperAdmin__Email: "${SUPERADMIN_EMAIL}"
       SuperAdmin__Password: "${SUPERADMIN_PASSWORD}"
+      SuperAdmin__AuthProvider: "${SUPERADMIN_AUTHPROVIDER}"
       CloudflareR2__AccountId: "${CLOUDFLARER2__ACCOUNTID}"
       CloudflareR2__AccessKeyId: "${CLOUDFLARER2__ACCESSKEYID}"
       CloudflareR2__SecretAccessKey: "${CLOUDFLARER2__SECRETACCESSKEY}"
