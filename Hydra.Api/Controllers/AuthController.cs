@@ -113,6 +113,9 @@ public class AuthController : ControllerBase
         var email = payload.Email.Trim().ToLowerInvariant();
         var user = await _userRepo.GetByEmailAsync(email, ct);
 
+        if (user is not null && user.AuthProvider != AuthProvider.Google)
+            return Unauthorized(new { message = "This email is already registered with a password. Please sign in with your email and password." });
+
         if (user is null)
         {
             user = new User
