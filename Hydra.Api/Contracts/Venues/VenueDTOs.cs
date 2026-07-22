@@ -76,7 +76,8 @@ public record CreateVenueRequest(
     int Capacity,
     Guid VenueTypeId,
     Guid UserId,
-    string? Description = null);
+    string? Description = null,
+    string? Location = null);
 
 public record UpdateVenueRequest(
     string Name,
@@ -84,7 +85,6 @@ public record UpdateVenueRequest(
     int Capacity,
     Guid VenueTypeId,
     string? Description = null,
-    string? Location = null,
     string? MapsUrl = null);
 
 public record BookingRulesDto(

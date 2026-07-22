@@ -70,7 +70,8 @@ public static class MappingExtensions
             Description = request.Description,
             Capacity = request.Capacity,
             VenueTypeId = request.VenueTypeId,
-            UserId = request.UserId
+            UserId = request.UserId,
+            Location = request.Location
         };
 
     public static void UpdateFrom(this Venue venue, UpdateVenueRequest request)
@@ -80,8 +81,9 @@ public static class MappingExtensions
         venue.Description = request.Description;
         venue.Capacity = request.Capacity;
         venue.VenueTypeId = request.VenueTypeId;
-        venue.Location = request.Location;
         venue.MapsUrl = request.MapsUrl;
+        // Location is intentionally NOT updatable here — only a SuperAdmin sets it
+        // at venue creation. Venue admins cannot change their venue's area.
     }
 
     public static CustomerDto ToDto(this Customer customer) =>

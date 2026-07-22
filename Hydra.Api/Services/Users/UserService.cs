@@ -198,7 +198,8 @@ public class UserService : IUserService
                 Address: request.Address,
                 Capacity: request.Capacity,
                 VenueTypeId: request.VenueTypeId,
-                Description: request.Description
+                Description: request.Description,
+                Location: request.Location
             );
 
             var venue = await _venueService.CreateVenueAsync(venueRequest, ct);
