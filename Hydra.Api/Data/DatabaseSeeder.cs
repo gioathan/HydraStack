@@ -73,26 +73,42 @@ public class DatabaseSeeder
     {
         var email = _config["SuperAdmin:Email"] ?? "superadmin@hydra.app";
         var password = _config["SuperAdmin:Password"] ?? "Admin@12345!";
+        var authProvider = string.Equals(_config["SuperAdmin:AuthProvider"], "Google", StringComparison.OrdinalIgnoreCase)
+            ? AuthProvider.Google
+            : AuthProvider.Email;
 
         try
         {
-            if (await _context.Users.AnyAsync(u => u.Email == email, ct))
+            var existing = await _context.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+            if (existing is not null)
+            {
+                // Self-heal: keep the seeded SuperAdmin's auth provider in sync with
+                // config, so switching SuperAdmin:AuthProvider (e.g. to Google-only
+                // login) takes effect on the next restart with no manual DB edits.
+                if (existing.AuthProvider != authProvider)
+                {
+                    existing.AuthProvider = authProvider;
+                    await _context.SaveChangesAsync(ct);
+                    _logger.LogInformation("Updated SuperAdmin auth provider to {Provider} for {Email}", authProvider, email);
+                }
                 return;
+            }
 
             _context.Users.Add(new User
             {
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                 Role = UserRole.SuperAdmin,
-                IsEmailVerified = true
+                IsEmailVerified = true,
+                AuthProvider = authProvider
             });
 
             await _context.SaveChangesAsync(ct);
-            _logger.LogInformation("Seeded SuperAdmin — email: {Email}", email);
+            _logger.LogInformation("Seeded SuperAdmin — email: {Email} (auth: {Provider})", email, authProvider);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to seed SuperAdmin user");
+            _logger.LogError(ex, "Failed to seed/update SuperAdmin user");
         }
     }
 
