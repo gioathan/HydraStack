@@ -211,9 +211,11 @@ public static class MappingExtensions
 
     public static void UpdateFrom(this Customer customer, UpdateCustomerRequest request)
     {
-        customer.Name = request.Name;
-        customer.Email = request.Email;
-        customer.Phone = request.Phone;
+        // Only overwrite fields the caller actually provided — omitting a field
+        // (e.g. saving just a phone number) must not wipe the others.
+        if (request.Name is not null) customer.Name = request.Name;
+        if (request.Email is not null) customer.Email = request.Email;
+        if (request.Phone is not null) customer.Phone = request.Phone;
         customer.Locale = request.Locale;
     }
 }

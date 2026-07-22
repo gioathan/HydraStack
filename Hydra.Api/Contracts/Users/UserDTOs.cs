@@ -46,7 +46,8 @@ public record LoginResponse(
     UserDto User,
     string Token,
     Guid? CustomerId = null,
-    Guid? VenueId = null);
+    Guid? VenueId = null,
+    bool PhoneRequired = false);
 
 public record CustomerAuthResponse(
     UserDto User,
