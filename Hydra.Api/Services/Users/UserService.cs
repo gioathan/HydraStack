@@ -170,10 +170,15 @@ public class UserService : IUserService
         if (string.IsNullOrWhiteSpace(request.Phone))
             throw new InvalidOperationException("Phone is required");
 
-        var existingUser = await _userRepo.GetByEmailAsync(request.Email, ct);
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        var existingUser = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
         if (existingUser is not null)
         {
-            throw new InvalidOperationException($"User with email '{request.Email}' already exists");
+            if (existingUser.AuthProvider == AuthProvider.Google)
+                throw new InvalidOperationException("This email is already registered with Google. Please continue with Google.");
+
+            throw new InvalidOperationException($"User with email '{normalizedEmail}' already exists");
         }
 
         using var transaction = await _context.Database.BeginTransactionAsync(ct);
@@ -181,7 +186,7 @@ public class UserService : IUserService
         try
         {
             var userRequest = new CreateUserRequest(
-                Email: request.Email,
+                Email: normalizedEmail,
                 Password: request.Password,
                 Role: "Customer"
             );
@@ -190,7 +195,7 @@ public class UserService : IUserService
 
             var customerRequest = new CreateCustomerRequest(
                 UserId: user.Id,
-                Email: request.Email,
+                Email: normalizedEmail,
                 Name: request.Name,
                 Phone: request.Phone
             );
