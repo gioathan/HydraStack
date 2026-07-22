@@ -21,6 +21,8 @@ public record UpdateUserRequest(
     string NewPassword
 );
 
+public record UpdateUserEmailRequest(string Email);
+
 public record RegisterCustomerRequest(
     string Email,
     string Password,

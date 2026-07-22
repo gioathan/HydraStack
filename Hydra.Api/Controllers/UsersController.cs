@@ -33,9 +33,31 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<PagedResult<UserDto>>> GetAllUsers(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
+        [FromQuery] string? search = null,
+        [FromQuery] string? role = null,
         CancellationToken ct = default)
     {
-        return Ok(await _userService.GetAllUsersAsync(page, pageSize, ct));
+        return Ok(await _userService.GetAllUsersAsync(page, pageSize, search, role, ct));
+    }
+
+    [HttpPut("{id:guid}/email")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult> UpdateUserEmail(
+        Guid id,
+        [FromBody] UpdateUserEmailRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var success = await _userService.UpdateUserEmailAsync(id, request.Email, ct);
+            if (!success)
+                return NotFound(new { message = $"User with ID {id} not found" });
+            return Ok(new { message = "Email updated successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id:guid}")]

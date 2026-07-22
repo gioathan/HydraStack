@@ -30,12 +30,36 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public async Task<PagedResult<UserDto>> GetAllUsersAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<UserDto>> GetAllUsersAsync(int page, int pageSize, string? search = null, string? role = null, CancellationToken ct = default)
     {
         var safeSize = Math.Clamp(pageSize, 1, 100);
         var skip = (Math.Max(1, page) - 1) * safeSize;
-        var (items, total) = await _userRepo.GetAllAsync(skip, safeSize, ct);
+
+        UserRole? roleFilter = null;
+        if (!string.IsNullOrWhiteSpace(role) && Enum.TryParse<UserRole>(role, ignoreCase: true, out var parsed))
+            roleFilter = parsed;
+
+        var (items, total) = await _userRepo.GetAllAsync(skip, safeSize, search, roleFilter, ct);
         return new PagedResult<UserDto>(items.Select(u => u.ToDto()).ToList(), total, page, safeSize);
+    }
+
+    public async Task<bool> UpdateUserEmailAsync(Guid id, string email, CancellationToken ct = default)
+    {
+        var normalized = (email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new InvalidOperationException("Email is required");
+
+        var existing = await _userRepo.GetByEmailAsync(normalized, ct);
+        if (existing is not null && existing.Id != id)
+            throw new InvalidOperationException($"User with email '{normalized}' already exists");
+
+        var user = await _userRepo.GetByIdAsync(id, ct);
+        if (user is null)
+            return false;
+
+        user.Email = normalized;
+        await _userRepo.UpdateAsync(user, ct);
+        return true;
     }
 
     public async Task<UserDto?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
