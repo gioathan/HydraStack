@@ -5,6 +5,7 @@ using Hydra.Api.Contracts.Venues;
 using Hydra.Api.Data;
 using Hydra.Api.Mapping;
 using Hydra.Api.Models;
+using Microsoft.EntityFrameworkCore;
 using Hydra.Api.Repositories.Users;
 using Hydra.Api.Services.Customers;
 using Hydra.Api.Services.Venues;
@@ -113,7 +114,41 @@ public class UserService : IUserService
         if (user is null)
             return false;
 
+        using var tx = await _context.Database.BeginTransactionAsync(ct);
+
+        // The user's Venue/Customer (and the venue's photos/pricing/events/rules)
+        // cascade when the user row is deleted. But VenueRating has *restrict* FKs
+        // to Booking and Customer, so ratings + bookings must be removed first or
+        // the cascade fails. Clear them explicitly for the affected venue/customer.
+        if (user.Role == UserRole.Admin)
+        {
+            var venueId = await _context.Venues
+                .Where(v => v.UserId == id)
+                .Select(v => (Guid?)v.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (venueId is not null)
+            {
+                await _context.VenueRatings.Where(r => r.VenueId == venueId).ExecuteDeleteAsync(ct);
+                await _context.Bookings.Where(b => b.VenueId == venueId).ExecuteDeleteAsync(ct);
+            }
+        }
+        else if (user.Role == UserRole.Customer)
+        {
+            var customerId = await _context.Customers
+                .Where(c => c.UserId == id)
+                .Select(c => (Guid?)c.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (customerId is not null)
+            {
+                await _context.VenueRatings.Where(r => r.CustomerId == customerId).ExecuteDeleteAsync(ct);
+                await _context.Bookings.Where(b => b.CustomerId == customerId).ExecuteDeleteAsync(ct);
+            }
+        }
+
         await _userRepo.DeleteAsync(id, ct);
+        await tx.CommitAsync(ct);
         return true;
     }
 
