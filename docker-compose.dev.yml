@@ -1,0 +1,28 @@
+# LOCAL DEVELOPMENT ONLY — not auto-loaded. Opt in explicitly:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Production runs `docker compose up` with docker-compose.yml alone (Caddy is
+# the only ingress; Postgres/Redis stay internal).
+#
+# This overlay exposes Postgres/Redis/API ports to the host so you can:
+#   - Run the API with `dotnet run` outside Docker
+#   - Connect with TablePlus, DBeaver, redis-cli, etc.
+# Caddy is parked under the "production" profile so it doesn't start locally.
+
+services:
+
+  hydra.api:
+    ports:
+      - "8080:8080"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  caddy:
+    profiles:
+      - production
