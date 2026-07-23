@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Sentry;
 
 namespace Hydra.Api.Middleware;
 
@@ -30,6 +31,11 @@ public class GlobalExceptionHandlerMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
+            // This middleware handles the exception itself (turns it into a JSON error
+            // response below) instead of rethrowing, so Sentry's automatic ASP.NET Core
+            // capture never sees it. Report it explicitly instead — no-ops if Sentry
+            // isn't configured (SENTRY_DSN unset).
+            SentrySdk.CaptureException(ex);
             await HandleExceptionAsync(context, ex);
         }
     }
