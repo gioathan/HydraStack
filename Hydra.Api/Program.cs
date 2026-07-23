@@ -38,7 +38,11 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Minio;
 
-Log.Logger = new LoggerConfiguration()
+// Read directly from the environment here since this logger is created before the
+// host/IConfiguration exist — it needs to be up early enough to capture startup crashes.
+var sentryDsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
+
+var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
@@ -55,8 +59,21 @@ Log.Logger = new LoggerConfiguration()
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30,
         fileSizeLimitBytes: 100_000_000,
-        rollOnFileSizeLimit: true)
-    .CreateLogger();
+        rollOnFileSizeLimit: true);
+
+if (!string.IsNullOrWhiteSpace(sentryDsn))
+{
+    // Sends Warning+ Serilog events (Log.Warning/Error/Fatal) to Sentry as events,
+    // separate from the request/exception capture added via UseSentry() below.
+    loggerConfig.WriteTo.Sentry(o =>
+    {
+        o.Dsn = sentryDsn;
+        o.MinimumEventLevel = LogEventLevel.Warning;
+        o.MinimumBreadcrumbLevel = LogEventLevel.Information;
+    });
+}
+
+Log.Logger = loggerConfig.CreateLogger();
 
 try
 {
@@ -65,6 +82,19 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Host.UseSerilog();
+
+    if (!string.IsNullOrWhiteSpace(sentryDsn))
+    {
+        // Automatic capture of unhandled exceptions + request tracing, in addition
+        // to the Serilog sink above (which only forwards explicit log calls).
+        builder.WebHost.UseSentry(o =>
+        {
+            o.Dsn = sentryDsn;
+            o.Environment = builder.Environment.EnvironmentName;
+            o.TracesSampleRate = 0.2;
+            o.SendDefaultPii = false;
+        });
+    }
 
     var pgCs = builder.Configuration.GetConnectionString("Postgres");
     if (string.IsNullOrWhiteSpace(pgCs))

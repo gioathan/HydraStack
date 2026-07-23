@@ -44,6 +44,7 @@ services:
       CloudflareR2__SecretAccessKey: "${CLOUDFLARER2__SECRETACCESSKEY}"
       CloudflareR2__BucketName: "${CLOUDFLARER2__BUCKETNAME}"
       CloudflareR2__PublicDomain: "${CLOUDFLARER2__PUBLICDOMAIN}"
+      SENTRY_DSN: "${SENTRY_DSN}"
       ASPNETCORE_URLS: "http://+:8080"
     depends_on:
       postgres:
