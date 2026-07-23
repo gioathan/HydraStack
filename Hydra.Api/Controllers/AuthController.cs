@@ -60,7 +60,10 @@ public class AuthController : ControllerBase
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            if (user?.AuthProvider == AuthProvider.Google)
+            // Only enforced for customers — admin/venue-admin accounts (created via
+            // the SuperAdmin panel) may sign in with either email/password or Google
+            // regardless of which one is on file.
+            if (user?.Role == UserRole.Customer && user.AuthProvider == AuthProvider.Google)
                 return Unauthorized(new { message = "This account uses Google Sign-In. Please log in with Google." });
 
             return Unauthorized(new { message = "Invalid email or password." });
@@ -115,7 +118,9 @@ public class AuthController : ControllerBase
         var email = payload.Email.Trim().ToLowerInvariant();
         var user = await _userRepo.GetByEmailAsync(email, ct);
 
-        if (user is not null && user.AuthProvider != AuthProvider.Google)
+        // Only enforced for customers — admin/venue-admin accounts may sign in with
+        // either method regardless of which one is on file.
+        if (user is not null && user.Role == UserRole.Customer && user.AuthProvider != AuthProvider.Google)
             return Unauthorized(new { message = "This email is already registered with a password. Please sign in with your email and password." });
 
         if (user is null)

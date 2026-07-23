@@ -205,10 +205,13 @@ try
 
     builder.Services.AddRateLimiter(options =>
     {
-        // Strict policy for registration and password changes: 5 requests per 15 min per IP
+        // Registration/login/password-change policy. NOTE: this limiter is global
+        // (shared across all clients), not per-IP despite the name/comment below —
+        // see the fix for that tracked separately. Raised to 30 for the testing
+        // period; tighten back down before real launch.
         options.AddSlidingWindowLimiter("auth", opt =>
         {
-            opt.PermitLimit = 5;
+            opt.PermitLimit = 30;
             opt.Window = TimeSpan.FromMinutes(15);
             opt.SegmentsPerWindow = 3;
             opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
