@@ -37,7 +37,6 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Minio;
-using Sentry;
 
 // Read directly from the environment here since this logger is created before the
 // host/IConfiguration exist — it needs to be up early enough to capture startup crashes.
@@ -94,10 +93,6 @@ try
             o.Environment = builder.Environment.EnvironmentName;
             o.TracesSampleRate = 0.2;
             o.SendDefaultPii = false;
-            // Temporary — logs the SDK's own send attempts/failures to console so we
-            // can see why events aren't reaching Sentry. Remove once confirmed working.
-            o.Debug = true;
-            o.DiagnosticLevel = SentryLevel.Debug;
         });
     }
 
