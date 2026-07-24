@@ -326,8 +326,10 @@ public class BookingService : IBookingService
 
                 var slotMinutes = venue.Rules?.SlotMinutes ?? 90;
                 var openHour = venue.Rules?.OpenHour ?? 9;
+                var openMinute = venue.Rules?.OpenMinute ?? 0;
                 var closeHour = venue.Rules?.CloseHour ?? 22;
-                var generatedSlots = GenerateAvailableSlots(date, slotMinutes, openHour, closeHour);
+                var closeMinute = venue.Rules?.CloseMinute ?? 0;
+                var generatedSlots = GenerateAvailableSlots(date, slotMinutes, openHour, openMinute, closeHour, closeMinute);
 
                 var existingBookings = await _bookingRepo.GetBookingsByVenueAndDateAsync(venueId, date, ct);
 
@@ -347,7 +349,7 @@ public class BookingService : IBookingService
                 var isAvailable = availableSlots.Any();
                 var reason = isAvailable
                     ? $"{availableSlots.Count} slot(s) available"
-                    : $"No slots fit within operating hours ({openHour:D2}:00–{closeHour:D2}:00) with a {slotMinutes}-minute duration";
+                    : $"No slots fit within operating hours ({openHour:D2}:{openMinute:D2}–{closeHour:D2}:{closeMinute:D2}) with a {slotMinutes}-minute duration";
 
                 return new AvailabilityDto(
                     venueId,
@@ -362,16 +364,28 @@ public class BookingService : IBookingService
         );
     }
 
+    // Venue operating hours are entered by admins as local wall-clock time
+    // (all venues are in Greece), not UTC — must convert through the venue's
+    // timezone (handles EET/EEST DST automatically) rather than stamping the
+    // raw hour as UTC directly, or displayed times end up shifted by 2-3 hours.
+    private static readonly TimeZoneInfo VenueTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Athens");
+
     private List<TimeSlot> GenerateAvailableSlots(
         DateOnly date,
         int slotMinutes,
         int openHour = 9,
-        int closeHour = 22)
+        int openMinute = 0,
+        int closeHour = 22,
+        int closeMinute = 0)
     {
         var availableSlots = new List<TimeSlot>();
-        var businessStart = date.ToDateTime(new TimeOnly(openHour, 0), DateTimeKind.Utc);
-        var endDate = closeHour < openHour ? date.AddDays(1) : date;
-        var businessEnd = endDate.ToDateTime(new TimeOnly(closeHour, 0), DateTimeKind.Utc);
+        var endDate = (closeHour, closeMinute).CompareTo((openHour, openMinute)) <= 0 ? date.AddDays(1) : date;
+
+        var localStart = new DateTime(date.Year, date.Month, date.Day, openHour, openMinute, 0, DateTimeKind.Unspecified);
+        var localEnd = new DateTime(endDate.Year, endDate.Month, endDate.Day, closeHour, closeMinute, 0, DateTimeKind.Unspecified);
+
+        var businessStart = TimeZoneInfo.ConvertTimeToUtc(localStart, VenueTimeZone);
+        var businessEnd = TimeZoneInfo.ConvertTimeToUtc(localEnd, VenueTimeZone);
 
         var currentTime = businessStart;
 

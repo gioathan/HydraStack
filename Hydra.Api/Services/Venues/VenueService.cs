@@ -233,7 +233,7 @@ public class VenueService : IVenueService
         if (rules is null)
             return null;
 
-        return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
+        return rules.ToDto();
     }
 
     public async Task<BookingRulesDto?> UpdateBookingRulesAsync(Guid venueId, UpdateBookingRulesRequest request, CancellationToken ct = default)
@@ -250,26 +250,19 @@ public class VenueService : IVenueService
                 return null;
 
             rules = new BookingRules { VenueId = venueId };
-            rules.AutoConfirm = request.AutoConfirm;
-            rules.SlotMinutes = request.SlotMinutes;
-            rules.OpenHour = request.OpenHour;
-            rules.CloseHour = request.CloseHour;
-
-            await _venueRepo.AddRulesAsync(rules, ct);
-            await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
-
-            return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
+            await _venueRepo.AddRulesAsync(rules.ApplyFrom(request), ct);
+        }
+        else
+        {
+            await _venueRepo.UpdateRulesAsync(rules.ApplyFrom(request), ct);
         }
 
-        rules.AutoConfirm = request.AutoConfirm;
-        rules.SlotMinutes = request.SlotMinutes;
-        rules.OpenHour = request.OpenHour;
-        rules.CloseHour = request.CloseHour;
-
-        await _venueRepo.UpdateRulesAsync(rules, ct);
+        // VenueDto (the customer-facing venue detail response) surfaces these
+        // hours, so its cache must be invalidated too — not just availability.
+        await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
         await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
 
-        return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
+        return rules.ToDto();
     }
 
     public async Task<VenueDto?> ToggleEventsAsync(Guid venueId, bool enabled, CancellationToken ct = default)

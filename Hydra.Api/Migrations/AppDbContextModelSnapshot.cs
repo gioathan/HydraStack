@@ -83,10 +83,16 @@ namespace Hydra.Api.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(22);
 
+                    b.Property<int>("CloseMinute")
+                        .HasColumnType("integer");
+
                     b.Property<int>("OpenHour")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(9);
+
+                    b.Property<int>("OpenMinute")
+                        .HasColumnType("integer");
 
                     b.Property<int>("SlotMinutes")
                         .HasColumnType("integer");
