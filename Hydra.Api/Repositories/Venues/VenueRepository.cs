@@ -90,6 +90,12 @@ public class VenueRepository : IVenueRepository
             .FirstOrDefaultAsync(r => r.VenueId == venueId, ct);
     }
 
+    public async Task AddRulesAsync(BookingRules rules, CancellationToken ct = default)
+    {
+        _context.BookingRules.Add(rules);
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task UpdateRulesAsync(BookingRules rules, CancellationToken ct = default)
     {
         _context.BookingRules.Update(rules);
