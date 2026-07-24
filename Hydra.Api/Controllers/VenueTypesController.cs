@@ -20,7 +20,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<PagedResult<VenueTypeDto>>> GetAllVenueTypes(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
@@ -30,7 +30,7 @@ public class VenueTypesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<VenueTypeDto>> GetVenueTypeById(Guid id, CancellationToken ct)
     {
         var venueType = await _venueTypeService.GetVenueTypeByIdAsync(id, ct);

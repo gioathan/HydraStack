@@ -20,7 +20,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<PagedResult<EventListItemDto>>> GetUpcomingEvents(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -31,7 +31,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<EventListItemDto>> GetEvent(Guid id, CancellationToken ct = default)
     {
         var ev = await _eventService.GetUpcomingByIdAsync(id, ct);
