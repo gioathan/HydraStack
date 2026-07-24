@@ -22,7 +22,7 @@ public class VenueEventsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<VenueEventDto>>> GetEvents(
         Guid venueId,
         [FromQuery] bool includePast = false,
@@ -32,7 +32,7 @@ public class VenueEventsController : ControllerBase
     }
 
     [HttpGet("{eventId:guid}")]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<VenueEventDto>> GetEvent(Guid venueId, Guid eventId, CancellationToken ct)
     {
         var ev = await _eventService.GetEventByIdAsync(venueId, eventId, ct);
