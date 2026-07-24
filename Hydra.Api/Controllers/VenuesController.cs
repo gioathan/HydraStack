@@ -25,14 +25,14 @@ public class VenuesController : ControllerBase
     }
 
     [HttpGet("locations")]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<string>>> GetLocations(CancellationToken ct)
     {
         return Ok(await _venueService.GetLocationsAsync(ct));
     }
 
     [HttpGet]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<PagedResult<VenueDto>>> GetAllVenues(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
@@ -45,7 +45,7 @@ public class VenuesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Customer,Admin,SuperAdmin")]
+    [AllowAnonymous]
     public async Task<ActionResult<VenueDto>> GetVenueById(Guid id, CancellationToken ct)
     {
         var venue = await _venueService.GetVenueByIdAsync(id, ct);
