@@ -70,7 +70,10 @@ public record VenueDto(
     bool BookingsEnabled,
     bool EventsEnabled,
     int? OpenHour,
-    int? CloseHour);
+    int? OpenMinute,
+    int? CloseHour,
+    int? CloseMinute,
+    int? SlotMinutes);
 
 public record CreateVenueRequest(
     string Name,
@@ -93,13 +96,17 @@ public record BookingRulesDto(
     bool AutoConfirm,
     int SlotMinutes,
     int OpenHour,
-    int CloseHour);
+    int OpenMinute,
+    int CloseHour,
+    int CloseMinute);
 
 public record UpdateBookingRulesRequest(
     bool AutoConfirm,
     int SlotMinutes,
     int OpenHour,
-    int CloseHour);
+    int CloseHour,
+    int OpenMinute = 0,
+    int CloseMinute = 0);
 
 public record AddVenuePhotoRequest(string Url, int DisplayOrder);
 

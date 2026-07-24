@@ -10,5 +10,7 @@ public class BookingRules
     public int SlotMinutes { get; set; } = 90;
     public bool AutoConfirm { get; set; } = true;
     public int OpenHour { get; set; } = 9;
+    public int OpenMinute { get; set; } = 0;
     public int CloseHour { get; set; } = 22;
+    public int CloseMinute { get; set; } = 0;
 }

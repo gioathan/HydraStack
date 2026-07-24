@@ -62,7 +62,10 @@ public static class MappingExtensions
             venue.BookingsEnabled,
             venue.EventsEnabled,
             venue.Rules?.OpenHour,
-            venue.Rules?.CloseHour);
+            venue.Rules?.OpenMinute,
+            venue.Rules?.CloseHour,
+            venue.Rules?.CloseMinute,
+            venue.Rules?.SlotMinutes);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
@@ -221,5 +224,25 @@ public static class MappingExtensions
         if (request.Email is not null) customer.Email = request.Email;
         if (request.Phone is not null) customer.Phone = request.Phone;
         customer.Locale = request.Locale;
+    }
+
+    public static BookingRulesDto ToDto(this BookingRules rules) =>
+        new(
+            rules.AutoConfirm,
+            rules.SlotMinutes,
+            rules.OpenHour,
+            rules.OpenMinute,
+            rules.CloseHour,
+            rules.CloseMinute);
+
+    public static BookingRules ApplyFrom(this BookingRules rules, UpdateBookingRulesRequest request)
+    {
+        rules.AutoConfirm = request.AutoConfirm;
+        rules.SlotMinutes = request.SlotMinutes;
+        rules.OpenHour = request.OpenHour;
+        rules.OpenMinute = request.OpenMinute;
+        rules.CloseHour = request.CloseHour;
+        rules.CloseMinute = request.CloseMinute;
+        return rules;
     }
 }
