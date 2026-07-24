@@ -126,6 +126,13 @@ public class VenueService : IVenueService
     {
         var venue = request.ToModel();
         var created = await _venueRepo.AddAsync(venue, ct);
+
+        // Every venue needs a rules row to exist before its admin can configure
+        // booking hours/auto-confirm at all — create one with sensible defaults
+        // up front rather than leaving it to be created lazily (which previously
+        // never happened, so the rules form 404'd forever).
+        await _venueRepo.AddRulesAsync(new BookingRules { VenueId = created.Id }, ct);
+
         await _cache.BumpTokenAsync(CacheKeys.VenuesToken, ct);
         return created.ToDto();
     }
@@ -232,8 +239,27 @@ public class VenueService : IVenueService
     public async Task<BookingRulesDto?> UpdateBookingRulesAsync(Guid venueId, UpdateBookingRulesRequest request, CancellationToken ct = default)
     {
         var rules = await _venueRepo.GetRulesByVenueIdAsync(venueId, ct);
+
+        // Venues created before rules rows were seeded on creation would 404
+        // here forever with no way to self-serve a fix — create the row instead
+        // of just failing, so saving the form in the admin UI always works.
         if (rules is null)
-            return null;
+        {
+            var venue = await _venueRepo.GetByIdAsync(venueId, ct);
+            if (venue is null)
+                return null;
+
+            rules = new BookingRules { VenueId = venueId };
+            rules.AutoConfirm = request.AutoConfirm;
+            rules.SlotMinutes = request.SlotMinutes;
+            rules.OpenHour = request.OpenHour;
+            rules.CloseHour = request.CloseHour;
+
+            await _venueRepo.AddRulesAsync(rules, ct);
+            await _cache.BumpTokenAsync(CacheKeys.AvailabilityToken, ct);
+
+            return new BookingRulesDto(rules.AutoConfirm, rules.SlotMinutes, rules.OpenHour, rules.CloseHour);
+        }
 
         rules.AutoConfirm = request.AutoConfirm;
         rules.SlotMinutes = request.SlotMinutes;

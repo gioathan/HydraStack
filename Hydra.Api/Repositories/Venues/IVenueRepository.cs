@@ -12,5 +12,6 @@ public interface IVenueRepository
     Task<Venue> AddAsync(Venue venue, CancellationToken ct = default);
     Task UpdateAsync(Venue venue, CancellationToken ct = default);
     Task<BookingRules?> GetRulesByVenueIdAsync(Guid venueId, CancellationToken ct = default);
+    Task AddRulesAsync(BookingRules rules, CancellationToken ct = default);
     Task UpdateRulesAsync(BookingRules rules, CancellationToken ct = default);
 }
