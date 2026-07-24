@@ -23,6 +23,7 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings
             .AsNoTracking()
+            .Include(b => b.Customer)
             .AsQueryable();
 
         if (venueId.HasValue)
@@ -51,6 +52,7 @@ public class BookingRepository : IBookingRepository
     {
         var query = _context.Bookings
             .AsNoTracking()
+            .Include(b => b.Customer)
             .Where(b => b.Venue.UserId == adminUserId);
 
         if (venueId.HasValue)
@@ -70,6 +72,7 @@ public class BookingRepository : IBookingRepository
     {
         return await _context.Bookings
             .AsNoTracking()
+            .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
     }
 
@@ -94,27 +97,20 @@ public class BookingRepository : IBookingRepository
     {
         var startOfDay = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var endOfDay = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        // Overnight venues (e.g. open 18:00-03:00) can have a booking that started
+        // the previous evening and still runs into this date's early hours. The
+        // longest a booking can run is 12 hours, so looking that far back is
+        // enough to catch anything that could still overlap `date`.
+        var lookbackStart = startOfDay.AddHours(-12);
 
         return await _context.Bookings
             .AsNoTracking()
             .Where(b => b.VenueId == venueId)
             .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending)
-            .Where(b => b.StartUtc >= startOfDay && b.StartUtc < endOfDay)
+            .Where(b => b.StartUtc >= lookbackStart && b.StartUtc < endOfDay)
+            .Where(b => b.EndUtc > startOfDay)
             .OrderBy(b => b.StartUtc)
             .ToListAsync(ct);
-    }
-
-    public async Task<bool> AnyConflictAsync(
-        Guid venueId,
-        DateTime startUtc,
-        DateTime endUtc,
-        CancellationToken ct)
-    {
-        return await _context.Bookings
-            .AsNoTracking()
-            .AnyAsync(b => b.VenueId == venueId
-                && b.StartUtc < endUtc && b.EndUtc > startUtc
-                && (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed), ct);
     }
 
     public async Task<Booking> AddAsync(Booking booking, CancellationToken ct = default)

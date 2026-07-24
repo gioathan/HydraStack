@@ -68,7 +68,9 @@ public record VenueDto(
     string? Location,
     string? GoogleMapsUrl,
     bool BookingsEnabled,
-    bool EventsEnabled);
+    bool EventsEnabled,
+    int? OpenHour,
+    int? CloseHour);
 
 public record CreateVenueRequest(
     string Name,

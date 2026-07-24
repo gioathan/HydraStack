@@ -60,7 +60,9 @@ public static class MappingExtensions
             venue.Location,
             venue.MapsUrl,
             venue.BookingsEnabled,
-            venue.EventsEnabled);
+            venue.EventsEnabled,
+            venue.Rules?.OpenHour,
+            venue.Rules?.CloseHour);
 
     public static Venue ToModel(this CreateVenueRequest request) =>
         new()
@@ -118,7 +120,9 @@ public static class MappingExtensions
             booking.Status.ToString(),
             booking.VenueComment,
             booking.CreatedAtUtc,
-            booking.UpdatedAtUtc
+            booking.UpdatedAtUtc,
+            booking.Customer?.Name,
+            booking.Customer?.Phone
         );
 
     public static Booking ToModel(this CreateBookingRequest request) =>

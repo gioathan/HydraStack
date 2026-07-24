@@ -17,7 +17,9 @@ public record BookingDto(
     string Status,
     string? VenueComment,
     DateTime CreatedAtUtc,
-    DateTime UpdatedAtUtc);
+    DateTime UpdatedAtUtc,
+    string? CustomerName,
+    string? CustomerPhone);
 
 public record BookingDecisionRequest(
     string? Note = null);
