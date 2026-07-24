@@ -19,6 +19,7 @@ public class VenueRepository : IVenueRepository
             .AsNoTracking()
             .Include(v => v.VenueType)
             .Include(v => v.Photos.OrderBy(p => p.DisplayOrder))
+            .Include(v => v.Rules)
             .Where(v => venueTypeId == null || v.VenueTypeId == venueTypeId)
             .Where(v => name == null || v.Name.ToLower().Contains(name.ToLower()))
             .Where(v => location == null || v.Location != null && v.Location.ToLower() == location.ToLower())
@@ -47,6 +48,7 @@ public class VenueRepository : IVenueRepository
             .Include(v => v.VenueType)
             .Include(v => v.Photos.OrderBy(p => p.DisplayOrder))
             .Include(v => v.PricingItems.OrderBy(pi => pi.DisplayOrder))
+            .Include(v => v.Rules)
             .AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Id == id, ct);
     }

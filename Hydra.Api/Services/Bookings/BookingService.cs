@@ -137,14 +137,18 @@ public class BookingService : IBookingService
 
         try
         {
-            var hasConflict = await _bookingRepo.AnyConflictAsync(
+            var conflicting = await _bookingRepo.GetConflictingBookingsAsync(
                 request.VenueId,
                 request.StartUtc,
                 request.EndUtc,
                 ct);
 
-            if (hasConflict)
-                throw new InvalidOperationException("The requested time slot conflicts with an existing booking");
+            if (conflicting.Any(b => b.CustomerId == request.CustomerId))
+                throw new InvalidOperationException("You already have a booking at this venue during this time.");
+
+            var bookedCapacity = conflicting.Sum(b => b.PartySize);
+            if (bookedCapacity + request.PartySize > venue.Capacity)
+                throw new InvalidOperationException("This time slot is fully booked. Please choose another time.");
 
             var booking = request.ToModel();
 
@@ -152,6 +156,7 @@ public class BookingService : IBookingService
                 booking.Status = BookingStatus.Confirmed;
 
             var created = await _bookingRepo.AddAsync(booking, ct);
+            created.Customer = customer;
 
             await transaction.CommitAsync(ct);
 
@@ -326,9 +331,17 @@ public class BookingService : IBookingService
 
                 var existingBookings = await _bookingRepo.GetBookingsByVenueAndDateAsync(venueId, date, ct);
 
+                // A slot stays available as long as the venue has room for this
+                // party alongside whoever else already booked it — many different
+                // customers can share a slot up to capacity, not just one booking.
                 var availableSlots = generatedSlots
-                    .Where(slot => !existingBookings.Any(b =>
-                        b.StartUtc < slot.EndUtc && b.EndUtc > slot.StartUtc))
+                    .Where(slot =>
+                    {
+                        var bookedCapacity = existingBookings
+                            .Where(b => b.StartUtc < slot.EndUtc && b.EndUtc > slot.StartUtc)
+                            .Sum(b => b.PartySize);
+                        return bookedCapacity + partySize <= venue.Capacity;
+                    })
                     .ToList();
 
                 var isAvailable = availableSlots.Any();

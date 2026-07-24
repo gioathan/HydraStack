@@ -8,7 +8,6 @@ public interface IBookingRepository
     Task<(List<Booking> Items, int TotalCount)> GetBookingsByAdminUserIdAsync(Guid adminUserId, Guid? venueId, string? status, int skip, int take, CancellationToken ct);
     Task<Booking?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<List<Booking>> GetConflictingBookingsAsync(Guid venueId, DateTime startUtc, DateTime endUtc, CancellationToken ct);
-    Task<bool> AnyConflictAsync(Guid venueId, DateTime startUtc, DateTime endUtc, CancellationToken ct);
     Task<List<Booking>> GetBookingsByVenueAndDateAsync(Guid venueId, DateOnly date, CancellationToken ct);
     Task<Booking> AddAsync(Booking booking, CancellationToken ct);
     Task UpdateAsync(Booking booking, CancellationToken ct);
